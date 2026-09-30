@@ -6,8 +6,7 @@ Junte janelas de qualquer app do Windows em uma só janela, com painéis redimen
 [![Release](https://img.shields.io/github/v/release/brunocsilva41/agrupa-janela)](https://github.com/brunocsilva41/agrupa-janela/releases/latest)
 [![Licença: MIT](https://img.shields.io/github/license/brunocsilva41/agrupa-janela)](LICENSE)
 
-<!-- Captura do grupo: será adicionada em docs/images/grupo.png -->
-<!-- ![Um grupo com três terminais lado a lado](docs/images/grupo.png) -->
+![Um grupo com três terminais: um painel principal à esquerda e dois empilhados à direita](docs/images/grupo.png)
 
 ## Por quê
 
@@ -70,8 +69,7 @@ Se preferir não confiar em binários, [compile a partir do código](#compilar-a
 
 ## Como usar
 
-<!-- Captura da janela principal: será adicionada em docs/images/principal.png -->
-<!-- ![Janela principal com a lista de janelas abertas e os grupos](docs/images/principal.png) -->
+![O mesmo grupo no modo abas: uma janela por aba](docs/images/abas.png)
 
 1. Abra o SplitDeck. A janela principal lista as **janelas abertas**.
 2. Selecione uma ou mais (Ctrl+clique) e clique em **Novo grupo com as selecionadas**. Um duplo clique em uma janela agrupa na hora.

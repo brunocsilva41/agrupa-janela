@@ -79,6 +79,8 @@ internal static class Win32
     [DllImport("user32.dll")] public static extern bool GetWindowRect(nint hwnd, out RECT rect);
     [DllImport("user32.dll")] public static extern bool GetClientRect(nint hwnd, out RECT rect);
     [DllImport("user32.dll")] public static extern bool ClientToScreen(nint hwnd, ref POINT point);
+    [DllImport("user32.dll")] public static extern bool RedrawWindow(nint hwnd, nint rect, nint region, uint flags);
+    public const uint RDW_INVALIDATE = 0x0001, RDW_ERASE = 0x0004, RDW_ALLCHILDREN = 0x0080, RDW_FRAME = 0x0400;
 
     public const int GWLP_HWNDPARENT = -8;
 

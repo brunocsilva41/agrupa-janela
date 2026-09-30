@@ -24,6 +24,12 @@ public sealed class EmbeddedWindowHost : HwndHost, IGroupedWindow
     /// </summary>
     private readonly bool _cropFrame;
 
+    /// <summary>
+    /// Depois que o tamanho assenta, pede ao app para redesenhar tudo (inclusive a moldura). Sem isso, apps como o
+    /// console (conhost) não pintam a área que cresceu e sobra uma faixa preta com a barra de rolagem no lugar antigo.
+    /// </summary>
+    private readonly System.Windows.Threading.DispatcherTimer _settle = new() { Interval = TimeSpan.FromMilliseconds(150) };
+
     public nint Target { get; }
     public uint ProcessId { get; }
     public string CurrentTitle { get; private set; }
@@ -44,6 +50,12 @@ public sealed class EmbeddedWindowHost : HwndHost, IGroupedWindow
         _snapshot = snapshot;
         Identity = AppIdentity.Of(candidate);
         _cropFrame = Win32.GetClass(Target).StartsWith("Chrome_WidgetWin_", StringComparison.Ordinal);
+        _settle.Tick += (_, _) =>
+        {
+            _settle.Stop();
+            // Só invalida (sem UPDATENOW): o app redesenha no ritmo dele e um app travado nunca trava o nosso.
+            if (IsAttached) Win32.RedrawWindow(Target, 0, 0, Win32.RDW_INVALIDATE | Win32.RDW_ERASE | Win32.RDW_FRAME | Win32.RDW_ALLCHILDREN);
+        };
         HostRegistry.Add(this);
     }
 
@@ -88,6 +100,7 @@ public sealed class EmbeddedWindowHost : HwndHost, IGroupedWindow
         if (_released) return;
         _released = true;
         HostRegistry.Remove(this);
+        _settle.Stop();
         if (!Win32.IsWindow(Target)) return;
 
         Win32.SetParent(Target, 0);
@@ -139,6 +152,8 @@ public sealed class EmbeddedWindowHost : HwndHost, IGroupedWindow
             var (left, top, right, bottom) = _cropFrame ? FrameInsets() : (0, 0, 0, 0);
             Win32.SetWindowPos(Target, 0, -left, -top, Math.Max(1, width + left + right), Math.Max(1, height + top + bottom),
                 Win32.SWP_NOZORDER | Win32.SWP_NOACTIVATE | Win32.SWP_ASYNCWINDOWPOS);
+            _settle.Stop();
+            _settle.Start(); // reinicia: só redesenha quando o redimensionamento parar
         }
         return base.WndProc(hwnd, msg, wParam, lParam, ref handled);
     }

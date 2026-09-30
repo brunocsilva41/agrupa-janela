@@ -1,0 +1,16 @@
+# Mantém as actions do CI e os pacotes de teste atualizados (PRs semanais, revisados pelo mantenedor).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore

@@ -101,8 +101,6 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="Transparent"/>
     <Setter Property="SelectionBrush" Value="{StaticResource Accent}"/>
-    <!-- Em campo de texto a dica só atrapalha quando fica presa após o foco ir para uma janela incorporada. -->
-    <Setter Property="ToolTipService.ShowsToolTipOnKeyboardFocus" Value="False"/>
     <Style.Triggers>
       <Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="{StaticResource Line}"/></Trigger>
       <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="{StaticResource Accent}"/></Trigger>

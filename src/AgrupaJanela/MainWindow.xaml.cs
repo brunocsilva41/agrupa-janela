@@ -39,7 +39,7 @@ public partial class MainWindow : Window
         SysMenuCheck.IsChecked = _app.Settings.SystemMenuEnabled;
         HideMainCheck.IsChecked = _app.Settings.HideMainAfterGrouping;
         UpdatesCheck.IsChecked = _app.Settings.AutoCheckUpdates;
-        AboutText.Text = $"Agrupa-Janela {UpdateService.CurrentVersionText} · © 2026 Bruno Silva · licença MIT";
+        AboutText.Text = $"SplitDeck {UpdateService.CurrentVersionText} · © 2026 Bruno Silva · licença MIT";
     }
 
     private void CheckUpdates_Click(object sender, RoutedEventArgs e) => _ = _app.CheckForUpdatesAsync(manual: true);
@@ -162,7 +162,7 @@ public partial class MainWindow : Window
     private void DeleteSaved_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not SavedGroup saved) return;
-        var answer = ChoiceDialog.Ask(this, "Agrupa-Janela", $"Esquecer o grupo salvo \"{saved.Name}\"?",
+        var answer = ChoiceDialog.Ask(this, "SplitDeck", $"Esquecer o grupo salvo \"{saved.Name}\"?",
             ("Esquecer", "Os apps abertos não são afetados.", true), ("Cancelar", "", false));
         if (answer == 0) _app.DeleteSaved(saved);
     }

@@ -38,7 +38,7 @@ internal static class SetupFlow
         return selfDir != null && RunEntry.SamePath(selfDir, existing.Location);
     }
 
-    /// <summary>Runtime 8.x x64 instalado (AGRUPAJANELA_SETUP_TEST_NORUNTIME=1 simula ausência, só no modo teste).</summary>
+    /// <summary>Runtime 8.x x64 instalado (SPLITDECK_SETUP_TEST_NORUNTIME=1 simula ausência, só no modo teste).</summary>
     public static string? FindRuntime(SetupContext ctx) => ctx.TestNoRuntime ? null : DesktopRuntime.FindInstalled();
 
     public static void LaunchApp(SetupContext ctx, string dir)
@@ -68,7 +68,7 @@ internal static class SetupFlow
     {
         var app = new RunningApp(ctx, installDir);
         if (!app.IsRunning()) return true;
-        Log.Info("O Agrupa-Janela está aberto.");
+        Log.Info("O SplitDeck está aberto.");
         var first = true;
         while (true)
         {
@@ -77,10 +77,10 @@ internal static class SetupFlow
             var exited = await Task.Run(() => app.WaitForExit(TimeSpan.FromSeconds(signaled ? 20 : 1)));
             if (exited)
             {
-                Log.Info("O Agrupa-Janela foi fechado.");
+                Log.Info("O SplitDeck foi fechado.");
                 return true;
             }
-            Log.Warn("O Agrupa-Janela continua aberto.");
+            Log.Warn("O SplitDeck continua aberto.");
             if (ask == null) return false;
             first = false;
         }

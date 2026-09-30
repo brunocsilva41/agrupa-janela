@@ -68,11 +68,11 @@ internal static class DesktopRuntime
         return false;
     }
 
-    /// <summary>Baixa o instalador oficial para %TEMP%\AgrupaJanela-Setup\ (sobrescreve download anterior).</summary>
+    /// <summary>Baixa o instalador oficial para %TEMP%\SplitDeck-Setup\ (sobrescreve download anterior).</summary>
     public static async Task<string> DownloadAsync(IProgress<(long Received, long? Total)> progress, CancellationToken ct)
     {
         ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
-        var dir = Path.Combine(Path.GetTempPath(), "AgrupaJanela-Setup");
+        var dir = Path.Combine(Path.GetTempPath(), "SplitDeck-Setup");
         Directory.CreateDirectory(dir);
         var file = Path.Combine(dir, "windowsdesktop-runtime-8-win-x64.exe");
         if (File.Exists(file)) File.Delete(file);

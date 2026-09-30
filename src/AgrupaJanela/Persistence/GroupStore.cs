@@ -24,7 +24,7 @@ public sealed class SavedGroup
     private static int Count(NodeDto? node) => node is null ? 0 : node.App is not null ? 1 : node.Children.Sum(Count);
 }
 
-/// <summary>Grupos salvos em %APPDATA%\AgrupaJanela\groups.json.</summary>
+/// <summary>Grupos salvos em %APPDATA%\SplitDeck\groups.json.</summary>
 public sealed class GroupStore
 {
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals };

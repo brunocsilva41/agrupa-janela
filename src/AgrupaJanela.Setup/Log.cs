@@ -4,10 +4,10 @@ using System.Text;
 
 namespace AgrupaJanela.Setup;
 
-/// <summary>Log em %TEMP%\AgrupaJanela-Setup.log (acrescenta; nunca derruba o instalador).</summary>
+/// <summary>Log em %TEMP%\SplitDeck-Setup.log (acrescenta; nunca derruba o instalador).</summary>
 internal static class Log
 {
-    public static readonly string FilePath = Path.Combine(Path.GetTempPath(), "AgrupaJanela-Setup.log");
+    public static readonly string FilePath = Path.Combine(Path.GetTempPath(), "SplitDeck-Setup.log");
     private static readonly object Gate = new();
 
     public static void Info(string message) => Write("INFO", message);

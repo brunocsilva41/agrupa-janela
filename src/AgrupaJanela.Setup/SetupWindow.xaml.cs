@@ -50,22 +50,22 @@ public partial class SetupWindow : Window
         switch (mode)
         {
             case SetupMode.Install:
-                Title = "Instalar o Agrupa-Janela";
+                Title = "Instalar o SplitDeck";
                 _flow = new FrameworkElement[] { PageWelcome, PageWhat, PageOptions, PageReqs, PageProgress, PageDone };
                 PrepareInstall();
                 break;
             case SetupMode.Update:
-                Title = "Atualizar o Agrupa-Janela";
+                Title = "Atualizar o SplitDeck";
                 _flow = new FrameworkElement[] { PageProgress, PageDone };
                 Loaded += async (_, _) => await RunUpdateAsync();
                 break;
             default:
-                Title = "Desinstalar o Agrupa-Janela";
+                Title = "Desinstalar o SplitDeck";
                 _uninstallDir = SetupFlow.ResolveUninstallDir(ctx, cmd, existing);
                 if (_uninstallDir == null)
                 {
                     _flow = new FrameworkElement[] { PageMessage };
-                    MessageHeading.Text = "O Agrupa-Janela não está instalado";
+                    MessageHeading.Text = "O SplitDeck não está instalado";
                     MessageText.Text = "Não há nada para remover.";
                     ExitCode = SetupFlow.ExitOk;
                     _done = true;
@@ -221,7 +221,7 @@ public partial class SetupWindow : Window
         SetMark(OsMark, OsMarkText, is64);
         OsText.Text = is64
             ? $"Windows 64 bits (versão {Environment.OSVersion.Version})."
-            : "Windows 32 bits: o Agrupa-Janela só funciona no Windows 64 bits.";
+            : "Windows 32 bits: o SplitDeck só funciona no Windows 64 bits.";
 
         var runtime = SetupFlow.FindRuntime(_ctx);
         SetMark(RuntimeMark, RuntimeMarkText, runtime != null);
@@ -323,7 +323,7 @@ public partial class SetupWindow : Window
         BuildSteps(Installer.Steps);
         if (_cmd.WaitPid is int pid)
         {
-            ProgressText.Text = "Aguardando o Agrupa-Janela fechar…";
+            ProgressText.Text = "Aguardando o SplitDeck fechar…";
             await Task.Run(() => RunningApp.WaitForPid(pid, TimeSpan.FromSeconds(30)));
         }
         var error = SetupFlow.ResolveInstallDir(_ctx, _cmd, _existing, out var dir);
@@ -356,10 +356,10 @@ public partial class SetupWindow : Window
             Fail("Este instalador não contém o pacote do app (build de desenvolvimento).", SetupFlow.ExitFailed);
             return false;
         }
-        ProgressText.Text = "Verificando se o Agrupa-Janela está aberto…";
+        ProgressText.Text = "Verificando se o SplitDeck está aberto…";
         if (!await SetupFlow.EnsureAppClosedAsync(_ctx, options.InstallDir, AskCloseAppAsync))
         {
-            Fail("O Agrupa-Janela continua aberto, então a instalação foi interrompida. Nada foi alterado.", SetupFlow.ExitAppStillRunning);
+            Fail("O SplitDeck continua aberto, então a instalação foi interrompida. Nada foi alterado.", SetupFlow.ExitAppStillRunning);
             return false;
         }
 
@@ -379,10 +379,10 @@ public partial class SetupWindow : Window
         _busy = false;
         _done = true;
         ExitCode = SetupFlow.ExitOk;
-        DoneHeading.Text = _mode == SetupMode.Update ? "O Agrupa-Janela foi atualizado" : "O Agrupa-Janela foi instalado";
+        DoneHeading.Text = _mode == SetupMode.Update ? "O SplitDeck foi atualizado" : "O SplitDeck foi instalado";
         DoneText.Text = $"Versão {_ctx.Version} em {options.InstallDir}\n"
-                        + "Atalho: Menu Iniciar › Agrupa-Janela" + (options.DesktopShortcut ? " e Área de Trabalho" : "") + "\n"
-                        + "Para desinstalar: Configurações › Aplicativos › Agrupa-Janela.";
+                        + "Atalho: Menu Iniciar › SplitDeck" + (options.DesktopShortcut ? " e Área de Trabalho" : "") + "\n"
+                        + "Para desinstalar: Configurações › Aplicativos › SplitDeck.";
         DoneNote.Text = _mode == SetupMode.Install
             ? (LaunchBox.IsChecked == true ? (_ctx.TestMode ? "Modo de teste: o app instalado não será aberto." : "O app abre quando você clicar em Concluir.") : "")
             : "";
@@ -399,10 +399,10 @@ public partial class SetupWindow : Window
         ShowPage(Array.IndexOf(_flow, PageProgress));
         SetBusy(true);
         BuildSteps(Uninstaller.StepsFor(removeData));
-        ProgressText.Text = "Verificando se o Agrupa-Janela está aberto…";
+        ProgressText.Text = "Verificando se o SplitDeck está aberto…";
         if (!await SetupFlow.EnsureAppClosedAsync(_ctx, dir, AskCloseAppAsync))
         {
-            Fail("O Agrupa-Janela continua aberto, então a desinstalação foi interrompida. Nada foi removido.", SetupFlow.ExitAppStillRunning);
+            Fail("O SplitDeck continua aberto, então a desinstalação foi interrompida. Nada foi removido.", SetupFlow.ExitAppStillRunning);
             return;
         }
         var progress = new Progress<StepProgress>(OnStep);
@@ -419,7 +419,7 @@ public partial class SetupWindow : Window
         _busy = false;
         _done = true;
         ExitCode = SetupFlow.ExitOk;
-        DoneHeading.Text = "O Agrupa-Janela foi removido";
+        DoneHeading.Text = "O SplitDeck foi removido";
         DoneText.Text = removeData
             ? "Arquivos, atalhos e registros foram removidos, assim como seus grupos salvos e preferências."
             : $"Arquivos, atalhos e registros foram removidos.\nSeus grupos salvos e preferências foram mantidos em {_ctx.DataDir}.";
@@ -433,14 +433,14 @@ public partial class SetupWindow : Window
     {
         var choice = first
             ? SetupDialog.Ask(this,
-                "O Agrupa-Janela está aberto. Para continuar, ele será fechado: as janelas agrupadas voltam para a área de trabalho, sem fechar nenhum app.",
-                ("Fechar o Agrupa-Janela e continuar", "", true),
+                "O SplitDeck está aberto. Para continuar, ele será fechado: as janelas agrupadas voltam para a área de trabalho, sem fechar nenhum app.",
+                ("Fechar o SplitDeck e continuar", "", true),
                 ("Cancelar", "", false))
             : SetupDialog.Ask(this,
-                "O Agrupa-Janela não fechou sozinho. Feche-o você mesmo (ícone na bandeja › Sair) e clique em Tentar de novo.",
+                "O SplitDeck não fechou sozinho. Feche-o você mesmo (ícone na bandeja › Sair) e clique em Tentar de novo.",
                 ("Tentar de novo", "", true),
                 ("Cancelar", "", false));
-        if (choice == 0) ProgressText.Text = "Fechando o Agrupa-Janela…";
+        if (choice == 0) ProgressText.Text = "Fechando o SplitDeck…";
         return Task.FromResult(choice == 0);
     }
 

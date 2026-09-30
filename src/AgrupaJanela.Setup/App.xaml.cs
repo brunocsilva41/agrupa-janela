@@ -15,7 +15,7 @@ public partial class App : Application
 
         var ctx = SetupContext.Create();
         var cmd = CommandLine.Parse(e.Args);
-        Log.Info($"==== Instalador do Agrupa-Janela {ctx.Version} | args: {string.Join(" ", e.Args)} | {cmd}{(ctx.TestMode ? " | MODO TESTE" : "")}");
+        Log.Info($"==== Instalador do SplitDeck {ctx.Version} | args: {string.Join(" ", e.Args)} | {cmd}{(ctx.TestMode ? " | MODO TESTE" : "")}");
 
         DispatcherUnhandledException += (_, args) =>
         {

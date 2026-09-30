@@ -57,7 +57,7 @@ public static class UpdateService
             var name = asset.GetProperty("name").GetString();
             var url = asset.GetProperty("browser_download_url").GetString() ?? "";
             if (!url.StartsWith(DownloadPrefix, StringComparison.Ordinal)) continue; // só do repositório oficial
-            if (name == $"AgrupaJanela-Setup-{versionText}.exe") { setup = url; size = asset.GetProperty("size").GetInt64(); }
+            if (name == $"SplitDeck-Setup-{versionText}.exe") { setup = url; size = asset.GetProperty("size").GetInt64(); }
             else if (name == "SHA256SUMS.txt") sums = url;
         }
         if (setup is null || sums is null || size <= 0 || size > MaxSetupBytes) return null;
@@ -70,7 +70,7 @@ public static class UpdateService
     /// <summary>Baixa o instalador, confere o SHA-256 e retorna o caminho verificado.</summary>
     public static async Task<string> DownloadVerifiedAsync(UpdateInfo update, IProgress<double>? progress = null, CancellationToken cancel = default)
     {
-        var dir = Path.Combine(Path.GetTempPath(), "AgrupaJanela-update", update.Version.ToString());
+        var dir = Path.Combine(Path.GetTempPath(), "SplitDeck-update", update.Version.ToString());
         Directory.CreateDirectory(dir);
         var file = Path.Combine(dir, Path.GetFileName(new Uri(update.SetupUrl).LocalPath));
 
@@ -126,7 +126,7 @@ public static class UpdateService
     private static HttpClient CreateClient()
     {
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd($"AgrupaJanela/{ReadVersion()}");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"SplitDeck/{ReadVersion()}");
         client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         return client;
     }

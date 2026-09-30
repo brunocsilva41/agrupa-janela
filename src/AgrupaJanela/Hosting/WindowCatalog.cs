@@ -76,7 +76,7 @@ public static class WindowCatalog
     private static string? BlockReason(nint hwnd, uint pid, string className)
     {
         if (Win32.IsHungAppWindow(hwnd)) return "o aplicativo não está respondendo";
-        if (!SelfElevated && Win32.IsProcessElevated(pid)) return "roda como administrador; abra o Agrupa-Janela como administrador";
+        if (!SelfElevated && Win32.IsProcessElevated(pid)) return "roda como administrador; abra o SplitDeck como administrador";
         return null;
     }
 

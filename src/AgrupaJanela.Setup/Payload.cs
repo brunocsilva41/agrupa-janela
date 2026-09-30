@@ -6,10 +6,10 @@ using System.Security.Cryptography;
 
 namespace AgrupaJanela.Setup;
 
-/// <summary>O zip do app embutido no Setup (EmbeddedResource "AgrupaJanela.Payload.zip") e seu hash de build.</summary>
+/// <summary>O zip do app embutido no Setup (EmbeddedResource "SplitDeck.Payload.zip") e seu hash de build.</summary>
 internal static class Payload
 {
-    private const string ResourceName = "AgrupaJanela.Payload.zip";
+    private const string ResourceName = "SplitDeck.Payload.zip";
     private static Assembly Assembly => typeof(Payload).Assembly;
 
     public static bool IsPresent => Assembly.GetManifestResourceInfo(ResourceName) != null;

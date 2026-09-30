@@ -208,7 +208,7 @@ internal sealed class Uninstaller
         if (Directory.Exists(dir))
         {
             if (PathRules.ValidateLocation(dir, out _) != null || !PathRules.LooksLikeInstall(dir))
-                Log.Warn($"{dir} não parece uma instalação do Agrupa-Janela; a pasta não será apagada.");
+                Log.Warn($"{dir} não parece uma instalação do SplitDeck; a pasta não será apagada.");
             else
                 DeleteInstallFiles(dir);
         }

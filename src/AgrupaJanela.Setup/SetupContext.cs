@@ -8,22 +8,22 @@ namespace AgrupaJanela.Setup;
 
 /// <summary>
 /// Onde o instalador mexe. No modo normal: pastas e chaves reais do usuário.
-/// Com AGRUPAJANELA_SETUP_TEST=1: tudo vai para uma "raiz de teste" (registro em
-/// HKCU\Software\AgrupaJanela-SetupTest, atalhos/dados em %TEMP%\AgrupaJanela-SetupTest) e os
+/// Com SPLITDECK_SETUP_TEST=1: tudo vai para uma "raiz de teste" (registro em
+/// HKCU\Software\SplitDeck-SetupTest, atalhos/dados em %TEMP%\SplitDeck-SetupTest) e os
 /// nomes de mutex/evento ganham o sufixo ".SetupTest" — a instalação real e o app aberto não são tocados.
 /// </summary>
 internal sealed class SetupContext
 {
-    public const string AppName = "Agrupa-Janela";
+    public const string AppName = "SplitDeck";
     public const string Publisher = "Bruno Silva";
-    public const string AppExeName = "AgrupaJanela.exe";
-    public const string AppProcessName = "AgrupaJanela";
+    public const string AppExeName = "SplitDeck.exe";
+    public const string AppProcessName = "SplitDeck";
     public const string SetupExeName = "Setup.exe";
-    public const string ShortcutFileName = "Agrupa-Janela.lnk";
-    public const string RunValueName = "AgrupaJanela";
+    public const string ShortcutFileName = "SplitDeck.lnk";
+    public const string RunValueName = "SplitDeck";
     public const string RepositoryUrl = "https://github.com/brunocsilva41/agrupa-janela";
-    public const string TestEnvironmentVariable = "AGRUPAJANELA_SETUP_TEST";
-    public const string TestRegistryRoot = @"Software\AgrupaJanela-SetupTest";
+    public const string TestEnvironmentVariable = "SPLITDECK_SETUP_TEST";
+    public const string TestRegistryRoot = @"Software\SplitDeck-SetupTest";
 
     public bool TestMode { get; private set; }
     /// <summary>Só para capturas de tela: deixa as etapas de progresso visíveis por um instante (modo teste).</summary>
@@ -40,7 +40,7 @@ internal sealed class SetupContext
     public string DefaultInstallDir { get; private set; } = "";
     public string MutexName { get; private set; } = "";
     public string QuitEventName { get; private set; } = "";
-    /// <summary>Pasta de arquivos do modo teste (%TEMP%\AgrupaJanela-SetupTest), ou null.</summary>
+    /// <summary>Pasta de arquivos do modo teste (%TEMP%\SplitDeck-SetupTest), ou null.</summary>
     public string? TestFilesRoot { get; private set; }
 
     public string StartMenuShortcut => Path.Combine(StartMenuDir, ShortcutFileName);
@@ -56,31 +56,31 @@ internal sealed class SetupContext
             Version = ReadVersion(),
         };
         var sid = WindowsIdentity.GetCurrent().User!.Value;
-        var baseName = $@"Local\AgrupaJanela.{sid}";
+        var baseName = $@"Local\SplitDeck.{sid}";
 
         if (!ctx.TestMode)
         {
-            ctx.UninstallKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\AgrupaJanela";
+            ctx.UninstallKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\SplitDeck";
             ctx.RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
             ctx.StartMenuDir = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
             ctx.DesktopDir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-            ctx.DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AgrupaJanela");
-            ctx.DefaultInstallDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "AgrupaJanela");
+            ctx.DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SplitDeck");
+            ctx.DefaultInstallDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "SplitDeck");
             ctx.MutexName = baseName;
             ctx.QuitEventName = baseName + ".Quit";
         }
         else
         {
-            var root = Path.Combine(PathRules.ToLongPath(Path.GetTempPath()), "AgrupaJanela-SetupTest");
+            var root = Path.Combine(PathRules.ToLongPath(Path.GetTempPath()), "SplitDeck-SetupTest");
             ctx.TestFilesRoot = root;
-            ctx.TestSlow = Environment.GetEnvironmentVariable("AGRUPAJANELA_SETUP_TEST_SLOW") == "1";
-            ctx.TestNoRuntime = Environment.GetEnvironmentVariable("AGRUPAJANELA_SETUP_TEST_NORUNTIME") == "1";
-            ctx.UninstallKeyPath = TestRegistryRoot + @"\Uninstall\AgrupaJanela";
+            ctx.TestSlow = Environment.GetEnvironmentVariable("SPLITDECK_SETUP_TEST_SLOW") == "1";
+            ctx.TestNoRuntime = Environment.GetEnvironmentVariable("SPLITDECK_SETUP_TEST_NORUNTIME") == "1";
+            ctx.UninstallKeyPath = TestRegistryRoot + @"\Uninstall\SplitDeck";
             ctx.RunKeyPath = TestRegistryRoot + @"\Run";
             ctx.StartMenuDir = Path.Combine(root, "StartMenu");
             ctx.DesktopDir = Path.Combine(root, "Desktop");
-            ctx.DataDir = Path.Combine(root, "AppData", "AgrupaJanela");
-            ctx.DefaultInstallDir = Path.Combine(root, "Programs", "AgrupaJanela");
+            ctx.DataDir = Path.Combine(root, "AppData", "SplitDeck");
+            ctx.DefaultInstallDir = Path.Combine(root, "Programs", "SplitDeck");
             ctx.MutexName = baseName + ".SetupTest";
             ctx.QuitEventName = baseName + ".Quit.SetupTest";
         }

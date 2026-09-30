@@ -4,7 +4,7 @@ using Microsoft.Win32;
 
 namespace AgrupaJanela.Setup;
 
-/// <summary>Valor "AgrupaJanela" na chave Run (mesmo formato que o app grava: "\"...\AgrupaJanela.exe\" --tray").</summary>
+/// <summary>Valor "SplitDeck" na chave Run (mesmo formato que o app grava: "\"...\SplitDeck.exe\" --tray").</summary>
 internal static class RunEntry
 {
     public static string Command(string installDir) => $"\"{Path.Combine(installDir, SetupContext.AppExeName)}\" --tray";

@@ -17,7 +17,7 @@ Só a **versão mais recente** publicada em [Releases](https://github.com/brunoc
 
 Inclua, se possível:
 
-- versão do Agrupa-Janela e do Windows;
+- versão do SplitDeck e do Windows;
 - descrição do problema e do impacto (o que um atacante consegue fazer);
 - passos para reproduzir ou prova de conceito;
 - se já é público ou se você sabe de exploração ativa.
@@ -33,12 +33,12 @@ O projeto é mantido por uma pessoa, sem garantia de prazo. Os prazos acima são
 
 ## Escopo
 
-O Agrupa-Janela é um app desktop que roda com os privilégios do usuário logado. O modelo de ameaça parte daí: quem já executa código como o mesmo usuário já pode fazer o que o app faz.
+O SplitDeck é um app desktop que roda com os privilégios do usuário logado. O modelo de ameaça parte daí: quem já executa código como o mesmo usuário já pode fazer o que o app faz.
 
 **É vulnerabilidade**, por exemplo:
 
 - o instalador, o app ou a atualização executarem ou gravarem arquivos que não sejam os do release oficial (ex.: falha na verificação de integridade, download por canal inseguro);
-- o app ganhar ou repassar privilégios (ex.: permitir que um processo não elevado controle uma janela elevada por meio do Agrupa-Janela);
+- o app ganhar ou repassar privilégios (ex.: permitir que um processo não elevado controle uma janela elevada por meio do SplitDeck);
 - grupos salvos (`groups.json`) ou preferências levarem o app a executar algo diferente do que o usuário salvou de forma inesperada, em um cenário que não exija já ter acesso de escrita à pasta do usuário;
 - vazamento de dados do usuário pela rede;
 - o instalador pedir ou usar administrador sem necessidade, ou gravar fora da pasta do usuário.
@@ -46,7 +46,7 @@ O Agrupa-Janela é um app desktop que roda com os privilégios do usuário logad
 **Não é vulnerabilidade** (abra uma issue normal, se for bug):
 
 - o app fechar ou travar (sem impacto de segurança), ou uma janela não ser devolvida corretamente: é bug grave, relate como bug;
-- ações que exigem que o atacante já execute código como o usuário, ou que já possa editar `%APPDATA%\AgrupaJanela` ou `%LOCALAPPDATA%\Programs\AgrupaJanela`;
+- ações que exigem que o atacante já execute código como o usuário, ou que já possa editar `%APPDATA%\SplitDeck` ou `%LOCALAPPDATA%\Programs\SplitDeck`;
 - o aviso do SmartScreen por o instalador não ser assinado (limitação conhecida, veja o [README](README.md#aviso-do-smartscreen));
 - apps elevados não poderem ser agrupados (é a proteção do Windows funcionando);
 - problemas em apps de terceiros que o usuário escolheu agrupar.
@@ -55,8 +55,8 @@ O Agrupa-Janela é um app desktop que roda com os privilégios do usuário logad
 
 Estes princípios orientam o código. Uma mudança que viole algum deles é tratada como problema de segurança.
 
-- **Sem administrador.** O app roda como o usuário (`requestedExecutionLevel level="asInvoker"`). A instalação é por usuário, em `%LOCALAPPDATA%\Programs\AgrupaJanela`, e "Iniciar com o Windows" usa só a chave do usuário (`HKCU\...\Run`).
-- **Sem injeção de código em outros processos.** Nada de DLLs injetadas nem ganchos *in-context*. O app usa APIs públicas sobre janelas (`SetParent`, `SetWindowPos`, estilos, menu de sistema) e ganchos WinEvent **out-of-context** (`WINEVENT_OUTOFCONTEXT`), que rodam no próprio processo do Agrupa-Janela.
+- **Sem administrador.** O app roda como o usuário (`requestedExecutionLevel level="asInvoker"`). A instalação é por usuário, em `%LOCALAPPDATA%\Programs\SplitDeck`, e "Iniciar com o Windows" usa só a chave do usuário (`HKCU\...\Run`).
+- **Sem injeção de código em outros processos.** Nada de DLLs injetadas nem ganchos *in-context*. O app usa APIs públicas sobre janelas (`SetParent`, `SetWindowPos`, estilos, menu de sistema) e ganchos WinEvent **out-of-context** (`WINEVENT_OUTOFCONTEXT`), que rodam no próprio processo do SplitDeck.
 - **Sem rede, exceto atualização.** A única conexão é a verificação de atualizações nos Releases do GitHub (`api.github.com`), que pode ser desligada nas preferências. Não há telemetria.
 - **Integridade por SHA256.** Cada release publica `SHA256SUMS.txt`. As atualizações baixadas pelo app são conferidas por SHA256 antes de serem usadas, e o instalador confere o hash do conteúdo embutido antes de extrair. O download só é aceito se vier do repositório oficial (`github.com/brunocsilva41/agrupa-janela/releases/download/`) e tiver no máximo 200 MB.
 - **Falha fechada (fail-closed).** Na dúvida, o app não age: não relança executáveis que não tenham caminho absoluto `.exe` existente (nada resolvido pelo `PATH`); não reaproveita uma janela salva se o processo não for o mesmo (o Windows reusa handles); não agrupa janelas de processos elevados quando ele próprio não é elevado; e, em qualquer erro, devolve as janelas agrupadas em vez de continuar.

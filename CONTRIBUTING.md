@@ -1,6 +1,6 @@
 # Como contribuir
 
-Obrigado pelo interesse no Agrupa-Janela. O projeto é **aberto, mas controlado**: qualquer pessoa pode propor mudanças, e tudo entra por Pull Request revisado e aprovado pelo mantenedor ([@brunocsilva41](https://github.com/brunocsilva41)).
+Obrigado pelo interesse no SplitDeck. O projeto é **aberto, mas controlado**: qualquer pessoa pode propor mudanças, e tudo entra por Pull Request revisado e aprovado pelo mantenedor ([@brunocsilva41](https://github.com/brunocsilva41)).
 
 Ao participar, você concorda com o [Código de Conduta](CODE_OF_CONDUCT.md). Vulnerabilidades **não** devem ir para issues públicas: veja [SECURITY.md](SECURITY.md).
 

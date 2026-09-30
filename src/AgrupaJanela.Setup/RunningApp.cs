@@ -7,7 +7,7 @@ using System.Threading;
 namespace AgrupaJanela.Setup;
 
 /// <summary>
-/// Conversa com o app aberto: mutex de instância `Local\AgrupaJanela.{SID}` e evento `...Quit`
+/// Conversa com o app aberto: mutex de instância `Local\SplitDeck.{SID}` e evento `...Quit`
 /// (o app devolve as janelas agrupadas e sai). Nunca mata o processo: mataria as janelas agrupadas.
 /// </summary>
 internal sealed class RunningApp
@@ -40,7 +40,7 @@ internal sealed class RunningApp
         }
     }
 
-    /// <summary>Processos AgrupaJanela.exe rodando a partir da pasta instalada.</summary>
+    /// <summary>Processos SplitDeck.exe rodando a partir da pasta instalada.</summary>
     private int[] InstalledProcessIds()
     {
         var ids = Process.GetProcessesByName(SetupContext.AppProcessName).Select(p =>

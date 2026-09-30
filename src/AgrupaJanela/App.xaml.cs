@@ -39,7 +39,7 @@ public partial class App : Application
         DispatcherUnhandledException += (_, args) =>
         {
             HostRegistry.ReleaseAll();
-            ChoiceDialog.Ask(null, "Agrupa-Janela",
+            ChoiceDialog.Ask(null, "SplitDeck",
                 $"Erro inesperado: {args.Exception.Message}\n\nPor segurança, as janelas agrupadas foram devolvidas à área de trabalho.",
                 ("OK", "", true));
             args.Handled = true;
@@ -59,7 +59,7 @@ public partial class App : Application
         {
             try { while (signal.WaitOne()) Dispatcher.BeginInvoke(onSignal); }
             catch (ObjectDisposedException) { }
-        }) { IsBackground = true, Name = "AgrupaJanela.Signal" }.Start();
+        }) { IsBackground = true, Name = "SplitDeck.Signal" }.Start();
 
     protected override void OnExit(ExitEventArgs e)
     {

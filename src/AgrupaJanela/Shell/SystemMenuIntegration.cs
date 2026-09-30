@@ -105,7 +105,7 @@ public sealed class SystemMenuIntegration : IDisposable
         if (GetMenuState(menu, IdGroupCurrent, MF_BYCOMMAND) != uint.MaxValue && !IsOurs(hwnd)) return false;
 
         var group = _currentGroupName();
-        var label = group is null ? "Agrupar janela  (Agrupa-Janela)" : $"Agrupar em \"{group}\"  (Agrupa-Janela)";
+        var label = group is null ? "Agrupar janela  (SplitDeck)" : $"Agrupar em \"{group}\"  (SplitDeck)";
         if (GetMenuState(menu, IdGroupCurrent, MF_BYCOMMAND) == uint.MaxValue)
         {
             AppendMenu(menu, MF_SEPARATOR, IdSeparator, null);

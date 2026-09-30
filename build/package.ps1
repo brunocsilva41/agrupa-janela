@@ -1,12 +1,12 @@
 ﻿<#
 .SYNOPSIS
-  Gera os assets de release do Agrupa-Janela em artifacts/.
+  Gera os assets de release do SplitDeck em artifacts/.
 
 .DESCRIPTION
   1. dotnet publish do app (framework-dependent, win-x64, ReadyToRun) -> artifacts/publish/
-  2. zip portátil (entradas em ordem e data fixa, para ser reproduzível) -> AgrupaJanela-{versão}-win-x64.zip
+  2. zip portátil (entradas em ordem e data fixa, para ser reproduzível) -> SplitDeck-{versão}-win-x64.zip
   3. o mesmo zip vira o payload embutido no instalador (build Release do AgrupaJanela.Setup)
-  4. AgrupaJanela-Setup-{versão}.exe
+  4. SplitDeck-Setup-{versão}.exe
   5. SHA256SUMS.txt ("<sha256 minúsculo>  <arquivo>", fim de linha LF)
 
   Uso:  powershell -NoProfile -ExecutionPolicy Bypass -File build/package.ps1 -Version 1.0.0
@@ -30,8 +30,8 @@ $artifacts = Join-Path $root 'artifacts'
 $publishDir = Join-Path $artifacts 'publish'
 $appProject = Join-Path $root 'src\AgrupaJanela\AgrupaJanela.csproj'
 $setupProject = Join-Path $root 'src\AgrupaJanela.Setup\AgrupaJanela.Setup.csproj'
-$zipName = "AgrupaJanela-$Version-win-x64.zip"
-$setupName = "AgrupaJanela-Setup-$Version.exe"
+$zipName = "SplitDeck-$Version-win-x64.zip"
+$setupName = "SplitDeck-Setup-$Version.exe"
 $zipPath = Join-Path $artifacts $zipName
 $setupPath = Join-Path $artifacts $setupName
 $sumsPath = Join-Path $artifacts 'SHA256SUMS.txt'
@@ -42,7 +42,7 @@ function Invoke-Checked([string]$what, [scriptblock]$command) {
     if ($LASTEXITCODE -ne 0) { throw "$what falhou (código $LASTEXITCODE)." }
 }
 
-Write-Host "Agrupa-Janela $Version -> $artifacts"
+Write-Host "SplitDeck $Version -> $artifacts"
 & dotnet --version
 if ($LASTEXITCODE -ne 0) { throw 'dotnet não encontrado.' }
 
@@ -54,7 +54,7 @@ New-Item -ItemType Directory -Path $publishDir | Out-Null
 Invoke-Checked 'Publicando o app' {
     dotnet publish $appProject -c Release -r win-x64 --self-contained false -p:PublishReadyToRun=true "-p:Version=$Version" -o $publishDir --nologo
 }
-if (-not (Test-Path (Join-Path $publishDir 'AgrupaJanela.exe'))) { throw 'AgrupaJanela.exe não saiu no publish.' }
+if (-not (Test-Path (Join-Path $publishDir 'SplitDeck.exe'))) { throw 'SplitDeck.exe não saiu no publish.' }
 
 # 2. Zip portátil (reproduzível: ordem alfabética, data fixa, separador "/")
 Write-Host '==> Gerando o zip portátil'
@@ -86,7 +86,7 @@ Write-Host "    $($names.Count) arquivos -> $zipName"
 Invoke-Checked 'Compilando o instalador' {
     dotnet build $setupProject -c Release --no-incremental "-p:Version=$Version" "-p:SetupPayload=$zipPath" -p:RequirePayload=true --nologo
 }
-$setupBuilt = Join-Path $root 'src\AgrupaJanela.Setup\bin\Release\net48\AgrupaJanela.Setup.exe'
+$setupBuilt = Join-Path $root 'src\AgrupaJanela.Setup\bin\Release\net48\SplitDeck.Setup.exe'
 Copy-Item -LiteralPath $setupBuilt -Destination $setupPath
 
 # Confere se a versão do instalador bate com a pedida.

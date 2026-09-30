@@ -58,7 +58,7 @@ public sealed class ChoiceDialog : Window
 
     /// <summary>Pergunta padrão ao fechar grupo(s). Retorna null se cancelou, senão se deve fechar os apps.</summary>
     public static bool? AskCloseGroups(Window? owner, string what) =>
-        Ask(owner, "Agrupa-Janela", $"Fechar {what}?",
+        Ask(owner, "SplitDeck", $"Fechar {what}?",
             ("Devolver as janelas", "Fecha só o agrupador; os apps voltam para a área de trabalho.", true),
             ("Fechar os apps também", "Fecha o agrupador e todos os aplicativos agrupados.", false),
             ("Cancelar", "", false)) switch

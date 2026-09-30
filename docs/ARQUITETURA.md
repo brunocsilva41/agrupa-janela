@@ -1,6 +1,6 @@
 # Arquitetura
 
-O Agrupa-Janela é um app WPF (.NET 8, x64) que coloca janelas de **outros processos** dentro de uma janela própria, o "grupo". Este documento descreve as peças, os fluxos principais e o porquê das decisões. Os nomes citados são classes e arquivos reais de `src/AgrupaJanela`.
+O SplitDeck é um app WPF (.NET 8, x64) que coloca janelas de **outros processos** dentro de uma janela própria, o "grupo". Este documento descreve as peças, os fluxos principais e o porquê das decisões. Os nomes citados são classes e arquivos reais de `src/AgrupaJanela`.
 
 ## Visão geral
 
@@ -54,7 +54,7 @@ flowchart TD
 | `SystemMenuIntegration` | `Shell/SystemMenuIntegration.cs` | Itens "Agrupar…" no menu de sistema de outros apps. |
 | `WindowDragWatcher` | `Shell/WindowDragWatcher.cs` | Detecta arraste de janelas de outros apps. |
 | `TrayIcon` | `Shell/TrayIcon.cs` | Ícone da bandeja (WinForms `NotifyIcon`). |
-| `GroupStore`, `AppSettings`, `AppPaths` | `Persistence/` | `groups.json` e `settings.json` em `%APPDATA%\AgrupaJanela` (ou `AGRUPAJANELA_DATA`); nomes da instância única e dos sinais (`Local\AgrupaJanela.{SID}`, `.Show`, `.Quit`); "Iniciar com o Windows" em `HKCU\...\Run`. |
+| `GroupStore`, `AppSettings`, `AppPaths` | `Persistence/` | `groups.json` e `settings.json` em `%APPDATA%\SplitDeck` (ou `SPLITDECK_DATA`); nomes da instância única e dos sinais (`Local\SplitDeck.{SID}`, `.Show`, `.Quit`); "Iniciar com o Windows" em `HKCU\...\Run`. |
 | `UpdateService` | `Updates/` | Verificação e aplicação de atualizações pelos Releases do GitHub, com SHA-256. |
 | `Win32` | `Native/Win32.cs` | Declarações P/Invoke compartilhadas. |
 
@@ -63,7 +63,7 @@ flowchart TD
 ### Agrupar
 
 1. Uma das entradas pede para agrupar: lista da `MainWindow`, **＋ Adicionar** do grupo, `HotkeyService` (`Ctrl+Alt+G`), `SystemMenuIntegration` ou `WindowDragWatcher` (arraste com Shift).
-2. `WindowCatalog.Describe` confere a janela na hora: visível, sem dono, não é filha nem janela de ferramenta, não é do próprio app nem do shell (área de trabalho, barra de tarefas), tem título. Se o app está travado ou é elevado (e o Agrupa-Janela não), a janela recebe um `BlockReason` e não é agrupada.
+2. `WindowCatalog.Describe` confere a janela na hora: visível, sem dono, não é filha nem janela de ferramenta, não é do próprio app nem do shell (área de trabalho, barra de tarefas), tem título. Se o app está travado ou é elevado (e o SplitDeck não), a janela recebe um `BlockReason` e não é agrupada.
 3. `AppController.AddTo` recusa janelas que já estão em outro grupo (`OwnerOf`).
 4. `GroupWindow.TryAdd` → `CreateHost`: `EmbedPolicy.Resolve` escolhe o modo e é criado um `EmbeddedWindowHost` ou `DockedWindowHost`. Se a criação falha, a exceção vira mensagem para o usuário e nada é alterado na janela.
 5. O host entra na `LayoutTree` ao lado do painel ativo (dividindo no sentido mais comprido) ou na zona de soltura escolhida, e o grupo é redesenhado (`Rebuild`).
@@ -100,7 +100,7 @@ Quem dispara:
 `Updates/UpdateService.cs` consulta `api.github.com/repos/brunocsilva41/agrupa-janela/releases/latest` (no máximo 1x por dia, 20 s depois de abrir, se "Verificar atualizações automaticamente" estiver ligado; ou manualmente). Releases rascunho/pré-lançamento são ignorados. Se houver versão maior:
 
 1. pergunta ao usuário (Atualizar agora / Ver novidades / Pular esta versão / Depois);
-2. baixa `SHA256SUMS.txt` e `AgrupaJanela-Setup-{versão}.exe` **só** de `github.com/brunocsilva41/agrupa-janela/releases/download/` (limite de 200 MB);
+2. baixa `SHA256SUMS.txt` e `SplitDeck-Setup-{versão}.exe` **só** de `github.com/brunocsilva41/agrupa-janela/releases/download/` (limite de 200 MB);
 3. confere o SHA-256; se não bater, apaga e cancela;
 4. inicia o instalador com `--update --silent --wait-pid <pid> --relaunch`, devolve todas as janelas (`ExitSilently`) e sai. O instalador espera o processo sair, instala por cima e reabre o app.
 
@@ -123,7 +123,7 @@ Como o WPF não desenha por cima de HWNDs filhos (problema de *airspace*), o des
 
 ### Por que o modo Acoplada não usa dono (owner) entre processos
 
-Definir o grupo como *owner* da janela acoplada manteria a ordem Z de graça, mas liga o destino das duas janelas: se o processo do Agrupa-Janela morrer, o Windows destrói as janelas que ele possui. Por isso a janela acoplada continua top-level e sem dono, e a ordem Z é mantida à mão (`DockNative.PlaceAbove`, `GroupWindow.ArrangeUnder`): ao ativar o grupo, as acopladas sobem logo acima dele; ao ativar uma acoplada, o grupo desce logo abaixo dela. O custo é mais código; o ganho é que um encerramento forçado não fecha esses apps.
+Definir o grupo como *owner* da janela acoplada manteria a ordem Z de graça, mas liga o destino das duas janelas: se o processo do SplitDeck morrer, o Windows destrói as janelas que ele possui. Por isso a janela acoplada continua top-level e sem dono, e a ordem Z é mantida à mão (`DockNative.PlaceAbove`, `GroupWindow.ArrangeUnder`): ao ativar o grupo, as acopladas sobem logo acima dele; ao ativar uma acoplada, o grupo desce logo abaixo dela. O custo é mais código; o ganho é que um encerramento forçado não fecha esses apps.
 
 Outros cuidados do modo:
 
@@ -133,7 +133,7 @@ Outros cuidados do modo:
 
 ### Por que WinEvent *out-of-context*, sem injeção
 
-Ganchos *in-context* (os ganchos globais de `SetWindowsHookEx`, exceto os *low-level*, e o WinEvent *in-context*) exigem carregar uma DLL nossa dentro de cada processo observado. Isso é invasivo, pode desestabilizar outros apps e costuma ser bloqueado por antivírus. O app usa só `SetWinEventHook` com `WINEVENT_OUTOFCONTEXT`: o Windows entrega os eventos na thread de UI do Agrupa-Janela.
+Ganchos *in-context* (os ganchos globais de `SetWindowsHookEx`, exceto os *low-level*, e o WinEvent *in-context*) exigem carregar uma DLL nossa dentro de cada processo observado. Isso é invasivo, pode desestabilizar outros apps e costuma ser bloqueado por antivírus. O app usa só `SetWinEventHook` com `WINEVENT_OUTOFCONTEXT`: o Windows entrega os eventos na thread de UI do SplitDeck.
 
 - `WindowDragWatcher`: `EVENT_SYSTEM_MOVESIZESTART/END` de todos os processos (menos o nosso), com um timer de 40 ms lendo o cursor e o Shift só durante o arraste.
 - `DockWatcher`: ganchos **por processo** acoplado (nunca globais) e faixas estreitas de eventos, para não receber o tráfego de cada controle do app. Eventos de posição são agrupados (no máximo um por janela a cada ~30 ms). Exceções no callback são capturadas, porque subiriam para código nativo e derrubariam o processo.

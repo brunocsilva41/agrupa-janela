@@ -20,9 +20,9 @@ jobs:
       DOTNET_NOLOGO: "1"
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
 
@@ -48,12 +48,12 @@ jobs:
         shell: pwsh
         run: ./build/package.ps1 -Version 0.0.0-ci
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: agrupajanela-ci-${{ github.sha }}
           path: |
-            artifacts/AgrupaJanela-Setup-0.0.0-ci.exe
-            artifacts/AgrupaJanela-0.0.0-ci-win-x64.zip
+            artifacts/SplitDeck-Setup-0.0.0-ci.exe
+            artifacts/SplitDeck-0.0.0-ci-win-x64.zip
             artifacts/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14

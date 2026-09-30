@@ -56,6 +56,11 @@ public sealed class AppController : IDisposable
     /// <summary>Começo do app: com --tray fica só na bandeja; opcionalmente reabre os grupos salvos.</summary>
     public void Start(bool startInTray)
     {
+        if (AppPaths.MigratedFromLegacy)
+        {
+            AppSettings.MigrateLegacyStartup();
+            _tray.ShowMessage("Agrupa-Janela agora é SplitDeck", "Seus grupos salvos e preferências foram trazidos para o novo nome.");
+        }
         // Encerramento forçado anterior pode ter deixado janelas acopladas escondidas: mostra de volta.
         var recovered = DockRecovery.RecoverOrphans();
         if (recovered > 0) _tray.ShowMessage("Janelas recuperadas", $"{recovered} janela(s) que estavam agrupadas foram devolvidas à área de trabalho.");
@@ -120,7 +125,7 @@ public sealed class AppController : IDisposable
             if (answer == 2) { Settings.SkippedVersion = update.Tag; Settings.Save(); return; }
             if (answer != 0) return;
 
-            _tray.ShowMessage("Baixando atualização", $"Agrupa-Janela {update.Version.ToString(3)}…");
+            _tray.ShowMessage("Baixando atualização", $"SplitDeck {update.Version.ToString(3)}…");
             string setup;
             try { setup = await UpdateService.DownloadVerifiedAsync(update); }
             catch (Exception ex)
@@ -165,7 +170,7 @@ public sealed class AppController : IDisposable
             if (errors.Count == 0) group.PlaceAt(rect);
         }
         else errors = AddTo(group, new[] { candidate });
-        if (errors.Count > 0) ChoiceDialog.Ask(null, "Agrupa-Janela", errors[0], ("OK", "", true));
+        if (errors.Count > 0) ChoiceDialog.Ask(null, "SplitDeck", errors[0], ("OK", "", true));
     }
 
     /// <summary>Abre um grupo vazio (botão "Novo grupo" ou bandeja), um pouco deslocado do grupo de origem.</summary>
@@ -309,7 +314,7 @@ public sealed class AppController : IDisposable
                 if (WindowCatalog.Describe(foreground) is not { } candidate) return;
                 var group = LastActive ?? CreateGroup();
                 var errors = AddTo(group, new[] { candidate });
-                if (errors.Count > 0) ChoiceDialog.Ask(null, "Agrupa-Janela", errors[0], ("OK", "", true));
+                if (errors.Count > 0) ChoiceDialog.Ask(null, "SplitDeck", errors[0], ("OK", "", true));
                 break;
             case HotkeyAction.ToggleMode: target?.ToggleMode(); break;
             case HotkeyAction.NextPane: target?.FocusPane(+1); break;
@@ -426,11 +431,11 @@ public sealed class AppController : IDisposable
         if (!created.TryAdd(below, out var error))
         {
             created.CloseWithDecision(false);
-            ChoiceDialog.Ask(null, "Agrupa-Janela", error, ("OK", "", true));
+            ChoiceDialog.Ask(null, "SplitDeck", error, ("OK", "", true));
             return;
         }
         if (!created.TryAdd(dragged, out error, created.FindHost(below.Handle), windowDrop.Zone))
-            ChoiceDialog.Ask(null, "Agrupa-Janela", error, ("OK", "", true));
+            ChoiceDialog.Ask(null, "SplitDeck", error, ("OK", "", true));
         created.Show();
         created.PlaceAt(rect);
         created.Activate();

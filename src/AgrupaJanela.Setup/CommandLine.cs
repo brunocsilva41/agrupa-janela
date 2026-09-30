@@ -4,7 +4,7 @@ namespace AgrupaJanela.Setup;
 
 /// <summary>
 /// (sem args) assistente | --silent | --update --wait-pid &lt;pid&gt; [--relaunch] | --uninstall [--silent]
-/// | --install-dir &lt;pasta&gt; (só no modo teste, AGRUPAJANELA_SETUP_TEST=1).
+/// | --install-dir &lt;pasta&gt; (só no modo teste, SPLITDECK_SETUP_TEST=1).
 /// </summary>
 internal sealed class CommandLine
 {

@@ -31,7 +31,7 @@ public sealed class HotkeyService : IDisposable
     public HotkeyService()
     {
         // Janela só de mensagens (HWND_MESSAGE = -3): recebe WM_HOTKEY sem aparecer em lugar nenhum.
-        _source = new HwndSource(new HwndSourceParameters("AgrupaJanela.Hotkeys") { ParentWindow = -3, WindowStyle = 0 });
+        _source = new HwndSource(new HwndSourceParameters("SplitDeck.Hotkeys") { ParentWindow = -3, WindowStyle = 0 });
         _source.AddHook(Hook);
 
         foreach (var (action, key, name, description) in Definitions)

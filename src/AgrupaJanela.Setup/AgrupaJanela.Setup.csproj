@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Instalador do Agrupa-Janela: WPF sobre .NET Framework 4.8 (já vem no Windows 10 1903+/11),
+    Instalador do SplitDeck: WPF sobre .NET Framework 4.8 (já vem no Windows 10 1903+/11),
     então roda sem baixar nada. Um único .exe: o payload (zip da saída do publish do app) vai embutido.
     O build/package.ps1 gera o zip e passa -p:SetupPayload=<zip> -p:RequirePayload=true.
   -->
@@ -13,10 +13,10 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>..\..\build\assets\AgrupaJanela.ico</ApplicationIcon>
-    <AssemblyName>AgrupaJanela.Setup</AssemblyName>
+    <ApplicationIcon>..\..\build\assets\SplitDeck.ico</ApplicationIcon>
+    <AssemblyName>SplitDeck.Setup</AssemblyName>
     <RootNamespace>AgrupaJanela.Setup</RootNamespace>
-    <AssemblyTitle>Instalador do Agrupa-Janela</AssemblyTitle>
+    <AssemblyTitle>Instalador do SplitDeck</AssemblyTitle>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <!-- A versão exibida vem de AssemblyInformationalVersion; sem o sufixo +commit. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
@@ -45,7 +45,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="Exists('$(SetupPayload)')">
-    <EmbeddedResource Include="$(SetupPayload)" LogicalName="AgrupaJanela.Payload.zip" />
+    <EmbeddedResource Include="$(SetupPayload)" LogicalName="SplitDeck.Payload.zip" />
   </ItemGroup>
 
   <!-- Hash do payload vai no assembly para o Setup conferir a integridade antes de extrair. -->
@@ -65,6 +65,6 @@
     <Error Condition="'$(RequirePayload)' == 'true' And !Exists('$(SetupPayload)')"
            Text="Payload do instalador não encontrado: $(SetupPayload). Rode build/package.ps1." />
     <Warning Condition="'$(RequirePayload)' != 'true' And !Exists('$(SetupPayload)')"
-             Text="AgrupaJanela.Setup compilado SEM payload (build de desenvolvimento): o instalador abre, mas não consegue instalar. Use build/package.ps1 para gerar o instalador completo." />
+             Text="SplitDeck.Setup compilado SEM payload (build de desenvolvimento): o instalador abre, mas não consegue instalar. Use build/package.ps1 para gerar o instalador completo." />
   </Target>
 </Project>

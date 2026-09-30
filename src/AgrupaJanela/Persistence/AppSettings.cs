@@ -5,11 +5,11 @@ using System.Text.Json;
 
 namespace AgrupaJanela.Persistence;
 
-/// <summary>Preferências em %APPDATA%\AgrupaJanela\settings.json (+ registro para iniciar com o Windows).</summary>
+/// <summary>Preferências em %APPDATA%\SplitDeck\settings.json (+ registro para iniciar com o Windows).</summary>
 public sealed class AppSettings
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string RunValue = "AgrupaJanela";
+    private const string RunValue = "SplitDeck";
     private static string FilePath => AppPaths.SettingsFile;
 
     /// <summary>Verificar atualizações nos Releases do GitHub (1x por dia, ao iniciar).</summary>
@@ -85,6 +85,21 @@ public sealed class AppSettings
     }
 
     /// <summary>Iniciar com o Windows (só para este usuário, sem precisar de administrador). Inicia direto na bandeja.</summary>
+    private const string LegacyRunValue = "AgrupaJanela";
+
+    /// <summary>Se o nome antigo estava configurado para iniciar com o Windows, passa para o novo executável.</summary>
+    public static void MigrateLegacyStartup()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
+            if (key?.GetValue(LegacyRunValue) is not string) return;
+            key.DeleteValue(LegacyRunValue, throwOnMissingValue: false);
+            StartWithWindows = true;
+        }
+        catch { }
+    }
+
     public static bool StartWithWindows
     {
         get
@@ -100,7 +115,7 @@ public sealed class AppSettings
             if (value)
             {
                 if (exe.StartsWith(@"\\") || !exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("Rode o Agrupa-Janela de uma pasta local para iniciar com o Windows.");
+                    throw new InvalidOperationException("Rode o SplitDeck de uma pasta local para iniciar com o Windows.");
                 key.SetValue(RunValue, $"\"{exe}\" --tray");
             }
             else key.DeleteValue(RunValue, throwOnMissingValue: false);

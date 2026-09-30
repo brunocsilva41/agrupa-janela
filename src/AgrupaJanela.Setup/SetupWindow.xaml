@@ -1,7 +1,7 @@
 <Window x:Class="AgrupaJanela.Setup.SetupWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Instalar o Agrupa-Janela" Width="640" Height="460" ResizeMode="CanMinimize"
+        Title="Instalar o SplitDeck" Width="640" Height="460" ResizeMode="CanMinimize"
         WindowStartupLocation="CenterScreen" UseLayoutRounding="True"
         Background="{StaticResource Bg}" Foreground="{StaticResource Text}" FontSize="12.5">
   <Grid Margin="20,14,20,14">
@@ -22,7 +22,7 @@
         <StackPanel x:Name="StepDots" Orientation="Horizontal" HorizontalAlignment="Right"/>
       </StackPanel>
       <StackPanel VerticalAlignment="Center">
-        <TextBlock Text="Agrupa-Janela" FontSize="18" FontWeight="SemiBold"/>
+        <TextBlock Text="SplitDeck" FontSize="18" FontWeight="SemiBold"/>
         <TextBlock x:Name="PageTitle" Foreground="{StaticResource TextDim}"/>
       </StackPanel>
     </DockPanel>
@@ -33,7 +33,7 @@
 
         <!-- 1. Boas-vindas -->
         <StackPanel x:Name="PageWelcome">
-          <TextBlock Style="{StaticResource PageHeading}" Text="Bem-vindo ao instalador do Agrupa-Janela"/>
+          <TextBlock Style="{StaticResource PageHeading}" Text="Bem-vindo ao instalador do SplitDeck"/>
           <TextBlock TextWrapping="Wrap" Text="Junte janelas de qualquer app em uma só, com painéis redimensionáveis ou abas."/>
           <TextBlock TextWrapping="Wrap" Foreground="{StaticResource TextDim}" Margin="0,4,0,0"
                      Text="Fica na bandeja do sistema; ao fechar um grupo, os apps voltam intactos para a área de trabalho."/>
@@ -89,7 +89,7 @@
           <TextBlock Style="{StaticResource Hint}" Margin="24,2,0,14" Text="O atalho no Menu Iniciar é sempre criado."/>
           <CheckBox x:Name="StartupBox" Content="Iniciar com o Windows"/>
           <TextBlock Style="{StaticResource Hint}" Margin="24,2,0,14" Text="Abre discretamente na bandeja do sistema quando você entra no Windows. Dá para mudar depois no app."/>
-          <CheckBox x:Name="LaunchBox" Content="Abrir o Agrupa-Janela ao terminar" IsChecked="True"/>
+          <CheckBox x:Name="LaunchBox" Content="Abrir o SplitDeck ao terminar" IsChecked="True"/>
           <TextBlock x:Name="LaunchHint" Style="{StaticResource Hint}" Margin="24,2,0,0" Text="Abre a janela principal assim que a instalação terminar."/>
         </StackPanel>
 
@@ -109,10 +109,10 @@
           </DockPanel>
 
           <StackPanel x:Name="RuntimeMissingPanel" Visibility="Collapsed">
-            <TextBlock TextWrapping="Wrap" Text="O Agrupa-Janela precisa do Microsoft .NET Desktop Runtime 8 (x64), gratuito, da Microsoft. O instalador pode baixá-lo do endereço oficial:"/>
+            <TextBlock TextWrapping="Wrap" Text="O SplitDeck precisa do Microsoft .NET Desktop Runtime 8 (x64), gratuito, da Microsoft. O instalador pode baixá-lo do endereço oficial:"/>
             <TextBox x:Name="RuntimeUrlBox" IsReadOnly="True" Foreground="{StaticResource Accent}" Margin="0,4,0,6" BorderThickness="0"/>
             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,10"
-                       Text="Antes de executar, a assinatura digital do arquivo é conferida (precisa ser da Microsoft Corporation). O runtime é instalado para todo o computador, por isso o Windows vai pedir permissão de administrador (UAC) só para essa etapa. O Agrupa-Janela em si continua sem administrador."/>
+                       Text="Antes de executar, a assinatura digital do arquivo é conferida (precisa ser da Microsoft Corporation). O runtime é instalado para todo o computador, por isso o Windows vai pedir permissão de administrador (UAC) só para essa etapa. O SplitDeck em si continua sem administrador."/>
             <StackPanel Orientation="Horizontal">
               <Button x:Name="DownloadButton" Style="{StaticResource PrimaryButton}" Content="Baixar e instalar o runtime" Padding="12,5" Click="Download_Click"/>
               <Button x:Name="RecheckButton" Content="Verificar de novo" Padding="12,5" Margin="8,0,0,0" Click="Recheck_Click"/>
@@ -155,7 +155,7 @@
 
         <!-- Desinstalar -->
         <StackPanel x:Name="PageUninstall" Visibility="Collapsed">
-          <TextBlock Style="{StaticResource PageHeading}" Text="Remover o Agrupa-Janela deste computador?"/>
+          <TextBlock Style="{StaticResource PageHeading}" Text="Remover o SplitDeck deste computador?"/>
           <DockPanel Margin="0,0,0,8">
             <TextBlock Text="•" Foreground="{StaticResource Accent}" Width="14"/>
             <TextBlock TextWrapping="Wrap" Text="Se o app estiver aberto, ele será fechado e as janelas agrupadas voltam para a área de trabalho."/>

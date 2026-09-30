@@ -27,7 +27,7 @@ internal static class PathRules
         try { full = ToLongPath(Path.GetFullPath(raw)).TrimEnd('\\', '/'); }
         catch (Exception) { return "Caminho inválido."; }
 
-        if (full.Length <= 2) return "Não instale na raiz de uma unidade. Use uma pasta própria para o Agrupa-Janela.";
+        if (full.Length <= 2) return "Não instale na raiz de uma unidade. Use uma pasta própria para o SplitDeck.";
         if (full.Length > 200) return "Caminho muito longo (máximo de 200 caracteres).";
         if (full.Split('\\').Skip(1).Any(s => s.Length == 0 || s.EndsWith(".", StringComparison.Ordinal) || s.EndsWith(" ", StringComparison.Ordinal)))
             return "Caminho inválido (nomes de pasta não podem terminar em ponto ou espaço).";
@@ -40,11 +40,11 @@ internal static class PathRules
 
         foreach (var system in SystemRoots())
             if (IsSameOrInside(full, system))
-                return $"Não é permitido instalar em {system}. O Agrupa-Janela é instalado só para o seu usuário, sem administrador.";
+                return $"Não é permitido instalar em {system}. O SplitDeck é instalado só para o seu usuário, sem administrador.";
 
         foreach (var known in KnownUserFolders())
             if (string.Equals(full, known, StringComparison.OrdinalIgnoreCase))
-                return "Escolha uma pasta própria para o Agrupa-Janela (a desinstalação apaga a pasta inteira).";
+                return "Escolha uma pasta própria para o SplitDeck (a desinstalação apaga a pasta inteira).";
 
         fullPath = full;
         return null;

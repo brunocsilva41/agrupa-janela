@@ -19,7 +19,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Versão a partir da tag
         id: version
@@ -36,7 +36,7 @@ jobs:
           "prerelease=$(if ($v.Contains('-')) { 'true' } else { 'false' })" >> $env:GITHUB_OUTPUT
           Write-Host "Versão: $v"
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
 
@@ -61,12 +61,12 @@ jobs:
         shell: pwsh
         run: ./build/package.ps1 -Version ${{ steps.version.outputs.version }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-assets
           path: |
-            artifacts/AgrupaJanela-Setup-${{ steps.version.outputs.version }}.exe
-            artifacts/AgrupaJanela-${{ steps.version.outputs.version }}-win-x64.zip
+            artifacts/SplitDeck-Setup-${{ steps.version.outputs.version }}.exe
+            artifacts/SplitDeck-${{ steps.version.outputs.version }}-win-x64.zip
             artifacts/SHA256SUMS.txt
           if-no-files-found: error
 
@@ -76,7 +76,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: release-assets
           path: assets
@@ -98,9 +98,9 @@ jobs:
           if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
           gh release create "$TAG" \
             --verify-tag \
-            --title "Agrupa-Janela $VERSION" \
+            --title "SplitDeck $VERSION" \
             --generate-notes \
             "${flags[@]}" \
-            "AgrupaJanela-Setup-$VERSION.exe" \
-            "AgrupaJanela-$VERSION-win-x64.zip" \
+            "SplitDeck-Setup-$VERSION.exe" \
+            "SplitDeck-$VERSION-win-x64.zip" \
             "SHA256SUMS.txt"

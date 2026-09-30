@@ -1,5 +1,5 @@
 name: Relatar um bug
-description: Algo não funciona como deveria no Agrupa-Janela.
+description: Algo não funciona como deveria no SplitDeck.
 title: "[Bug] "
 labels: ["bug"]
 body:
@@ -21,7 +21,7 @@ body:
   - type: input
     id: versao-app
     attributes:
-      label: Versão do Agrupa-Janela
+      label: Versão do SplitDeck
       description: "A versão do release que você instalou ou baixou (ex.: 1.0.0), ou o commit se compilou do código."
       placeholder: "1.0.0"
     validations:
@@ -99,7 +99,7 @@ body:
     attributes:
       label: Logs, capturas e arquivos
       description: |
-        Capturas de tela ou vídeo curto ajudam muito. Se útil, anexe `%APPDATA%\AgrupaJanela\settings.json`.
+        Capturas de tela ou vídeo curto ajudam muito. Se útil, anexe `%APPDATA%\SplitDeck\settings.json`.
         Cuidado ao anexar `groups.json`: ele contém caminhos, argumentos de linha de comando e títulos de janelas.
     validations:
       required: false

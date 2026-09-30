@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-  Gera build/assets/AgrupaJanela.ico (16/32/48/256) com o mesmo desenho do AppIcon do app:
+  Gera build/assets/SplitDeck.ico (16/32/48/256) com o mesmo desenho do AppIcon do app:
   quatro quadrados arredondados, o superior esquerdo azul #4C8DFF e os demais #9A9EA6.
 
 .DESCRIPTION
@@ -13,7 +13,7 @@ param(
     [string]$OutFile = ''
 )
 $ErrorActionPreference = 'Stop'
-if (-not $OutFile) { $OutFile = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'assets\AgrupaJanela.ico' }
+if (-not $OutFile) { $OutFile = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'assets\SplitDeck.ico' }
 Add-Type -AssemblyName System.Drawing
 
 function New-RoundedPath([System.Drawing.RectangleF]$r, [single]$radius) {

@@ -12,7 +12,7 @@ public sealed class TrayIcon : IDisposable
     {
         var menu = new ContextMenuStrip();
         var saved = new ToolStripMenuItem("Abrir grupo salvo");
-        menu.Items.Add("Abrir Agrupa-Janela", null, (_, _) => showMain());
+        menu.Items.Add("Abrir SplitDeck", null, (_, _) => showMain());
         menu.Items.Add("Novo grupo", null, (_, _) => newGroup());
         menu.Items.Add(saved);
         menu.Items.Add(new ToolStripSeparator());
@@ -25,7 +25,7 @@ public sealed class TrayIcon : IDisposable
             saved.Enabled = saved.DropDownItems.Count > 0;
         };
 
-        _icon = new NotifyIcon { Icon = AppIcon.Icon, Text = "Agrupa-Janela", ContextMenuStrip = menu, Visible = true };
+        _icon = new NotifyIcon { Icon = AppIcon.Icon, Text = "SplitDeck", ContextMenuStrip = menu, Visible = true };
         _icon.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) showMain(); };
     }
 
@@ -34,7 +34,7 @@ public sealed class TrayIcon : IDisposable
     {
         if (_hintShown) return;
         _hintShown = true;
-        _icon.ShowBalloonTip(3000, "Agrupa-Janela continua aberto", "Os atalhos continuam funcionando. Clique no ícone para abrir; botão direito → Sair para encerrar.", ToolTipIcon.Info);
+        _icon.ShowBalloonTip(3000, "SplitDeck continua aberto", "Os atalhos continuam funcionando. Clique no ícone para abrir; botão direito → Sair para encerrar.", ToolTipIcon.Info);
     }
 
     public void ShowMessage(string title, string text) => _icon.ShowBalloonTip(4000, title, text, ToolTipIcon.Info);

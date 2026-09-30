@@ -240,7 +240,7 @@ public partial class GroupWindow : Window
         var candidate = WindowCatalog.Describe(hwnd);
         if (candidate is null) return false;
         var ok = TryAdd(candidate, out var error, drop.Target, drop.Zone);
-        if (!ok) ChoiceDialog.Ask(this, "Agrupa-Janela", error, ("OK", "", true));
+        if (!ok) ChoiceDialog.Ask(this, "SplitDeck", error, ("OK", "", true));
         Activate();
         return ok;
     }
@@ -505,7 +505,7 @@ public partial class GroupWindow : Window
         if (_maximized is not null && !hosts.Contains(_maximized)) _maximized = null;
         if (_active is null || !hosts.Contains(_active)) _active = hosts.FirstOrDefault();
 
-        Title = $"{GroupName}  ·  Agrupa-Janela";
+        Title = $"{GroupName}  ·  SplitDeck";
         EmptyHint.Visibility = hosts.Count == 0 && !_loading ? Visibility.Visible : Visibility.Collapsed;
         ContentArea.Content = hosts.Count == 0 ? null
             : _mode == LayoutMode.Tabs ? BuildTabs(hosts)
@@ -792,7 +792,7 @@ public partial class GroupWindow : Window
     private void Name_Changed(object sender, TextChangedEventArgs e)
     {
         if (!_ready) return;
-        Title = $"{GroupName}  ·  Agrupa-Janela";
+        Title = $"{GroupName}  ·  SplitDeck";
         RaiseChanged();
     }
 

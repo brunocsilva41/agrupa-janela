@@ -13,13 +13,17 @@ using Microsoft.Win32;
 
 namespace AgrupaJanela.Setup;
 
-/// <summary>Detecção, download verificado e instalação do Microsoft .NET Desktop Runtime 8 (x64).</summary>
+/// <summary>Detecção, download verificado e instalação do Microsoft .NET Desktop Runtime exigido pelo app (x64).</summary>
 internal static class DesktopRuntime
 {
-    public const string DownloadUrl = "https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe";
+    /// <summary>Versão principal do runtime que o app usa (igual ao TargetFramework do app). Mudar aqui ao migrar.</summary>
+    public const int RequiredMajor = 10;
+
+    public static readonly string DisplayName = $"Microsoft .NET Desktop Runtime {RequiredMajor} (x64)";
+    public static readonly string DownloadUrl = $"https://aka.ms/dotnet/{RequiredMajor}.0/windowsdesktop-runtime-win-x64.exe";
     private const string FrameworkName = "Microsoft.WindowsDesktop.App";
 
-    /// <summary>Maior versão 8.x x64 instalada, ou null.</summary>
+    /// <summary>Maior versão {RequiredMajor}.x x64 instalada, ou null.</summary>
     public static string? FindInstalled()
     {
         var found = new List<Version>();
@@ -29,7 +33,7 @@ internal static class DesktopRuntime
             using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
             using (var fx = hklm.OpenSubKey($@"SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\{FrameworkName}"))
                 foreach (var name in fx?.GetValueNames() ?? Array.Empty<string>())
-                    if (TryParse8(name, out var v)) found.Add(v);
+                    if (TryParseRequired(name, out var v)) found.Add(v);
             using var x64 = hklm.OpenSubKey(@"SOFTWARE\dotnet\Setup\InstalledVersions\x64");
             installLocation = x64?.GetValue("InstallLocation") as string;
         }
@@ -46,8 +50,8 @@ internal static class DesktopRuntime
             {
                 var dir = Path.Combine(root!, "shared", FrameworkName);
                 if (!Directory.Exists(dir)) continue;
-                foreach (var sub in Directory.GetDirectories(dir, "8.*"))
-                    if (TryParse8(Path.GetFileName(sub), out var v) && File.Exists(Path.Combine(sub, "PresentationFramework.dll")))
+                foreach (var sub in Directory.GetDirectories(dir, RequiredMajor + ".*"))
+                    if (TryParseRequired(Path.GetFileName(sub), out var v) && File.Exists(Path.Combine(sub, "PresentationFramework.dll")))
                         found.Add(v);
             }
             catch (Exception ex) { Log.Warn($"Leitura de {root} falhou: {ex.Message}"); }
@@ -55,11 +59,11 @@ internal static class DesktopRuntime
         return found.Count == 0 ? null : found.Max()!.ToString();
     }
 
-    private static bool TryParse8(string text, out Version version)
+    private static bool TryParseRequired(string text, out Version version)
     {
         var dash = text.IndexOf('-');
         var core = dash >= 0 ? text.Substring(0, dash) : text;
-        if (Version.TryParse(core, out var parsed) && parsed.Major == 8)
+        if (Version.TryParse(core, out var parsed) && parsed.Major == RequiredMajor)
         {
             version = parsed;
             return true;

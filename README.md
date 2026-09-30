@@ -31,7 +31,7 @@ Não é um emulador nem uma captura de tela: o app agrupado é o mesmo processo 
 
 ## Instalação
 
-O SplitDeck roda no Windows 10 ou 11 (64 bits) e requer o **.NET 8 Desktop Runtime x64**.
+O SplitDeck roda no Windows 10 ou 11 (64 bits) e requer o **.NET 10 Desktop Runtime x64**.
 
 Baixe a versão mais recente em [Releases](https://github.com/brunocsilva41/agrupa-janela/releases/latest). Cada versão traz três arquivos:
 
@@ -51,7 +51,7 @@ Baixe a versão mais recente em [Releases](https://github.com/brunocsilva41/agru
 
 1. Extraia `SplitDeck-{versão}-win-x64.zip` em uma pasta sua.
 2. Execute `SplitDeck.exe`.
-3. Se o .NET 8 Desktop Runtime não estiver instalado, baixe-o em <https://dotnet.microsoft.com/download/dotnet/8.0> (".NET Desktop Runtime", x64).
+3. Se o .NET 10 Desktop Runtime não estiver instalado, baixe-o em <https://dotnet.microsoft.com/download/dotnet/10.0> (".NET Desktop Runtime", x64).
 
 ### Aviso do SmartScreen
 
@@ -156,7 +156,7 @@ Para relatar vulnerabilidades, veja [SECURITY.md](SECURITY.md).
 
 ## Compilar a partir do código
 
-Requisitos: Windows 10/11 e [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0).
+Requisitos: Windows 10/11 e [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0) (a versão exata fica em `global.json`).
 
 ```powershell
 git clone https://github.com/brunocsilva41/agrupa-janela.git
@@ -177,7 +177,7 @@ Os releases são publicados automaticamente pelo GitHub Actions quando uma tag `
 
 ```text
 AgrupaJanela.sln
-src/AgrupaJanela/          app WPF (.NET 8, x64)
+src/AgrupaJanela/          app WPF (.NET 10, x64)
   App.xaml(.cs)            início: instância única, proteção contra erros
   AppController.cs         coordena grupos, atalhos, arraste, bandeja
   GroupWindow.xaml(.cs)    a janela "grupo"
@@ -213,6 +213,6 @@ Contribuições são bem-vindas, por Pull Request revisado pelo mantenedor. Leia
 
 Features: tree layout with draggable splitters, 5 presets, equalize, maximize pane, drag-to-rearrange, tabs mode, global hotkeys (`Ctrl+Alt+G/M/←/→/Enter`, falling back to `Ctrl+Alt+Shift`), a "Group…" item in classic apps' title-bar menu, Shift+drag a window onto a group or onto another window, saved groups, tray icon, start with Windows. On close or on errors, windows are handed back to the desktop.
 
-Install: per-user installer (no admin) into `%LOCALAPPDATA%\Programs\SplitDeck`, or portable ZIP. Requires the .NET 8 Desktop Runtime x64. Binaries are not code-signed; verify them with `SHA256SUMS.txt` from the release. No telemetry; the only network access is the update check against GitHub Releases (being implemented, can be turned off). Limitations: elevated (admin) windows can't be grouped by a non-elevated instance; apps with custom title bars don't show the title-bar menu item; force-killing the process may close embedded windows.
+Install: per-user installer (no admin) into `%LOCALAPPDATA%\Programs\SplitDeck`, or portable ZIP. Requires the .NET 10 Desktop Runtime x64. Binaries are not code-signed; verify them with `SHA256SUMS.txt` from the release. No telemetry; the only network access is the update check against GitHub Releases (being implemented, can be turned off). Limitations: elevated (admin) windows can't be grouped by a non-elevated instance; apps with custom title bars don't show the title-bar menu item; force-killing the process may close embedded windows.
 
 Build: `dotnet build AgrupaJanela.sln`, test: `dotnet test tests/AgrupaJanela.Tests`. License: MIT. The UI and docs are in Brazilian Portuguese.

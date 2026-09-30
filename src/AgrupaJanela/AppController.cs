@@ -138,7 +138,12 @@ public sealed class AppController : IDisposable
             ExitSilently();
             Application.Current.Shutdown();
         }
-        finally { _checkingUpdates = false; }
+        finally
+        {
+            _checkingUpdates = false;
+            // Checagem automática em segundo plano: devolve ao Windows a memória da pilha de rede (≈20 MB).
+            if (!manual && _main is not { IsVisible: true }) TrimMemory();
+        }
     }
 
     public void ApplySystemMenuSetting()

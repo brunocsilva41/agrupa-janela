@@ -227,7 +227,7 @@ public partial class SetupWindow : Window
         SetMark(RuntimeMark, RuntimeMarkText, runtime != null);
         RuntimeText.Text = runtime != null
             ? $"Microsoft .NET Desktop Runtime {runtime} (x64) encontrado."
-            : "Microsoft .NET Desktop Runtime 8 (x64) não encontrado.";
+            : DesktopRuntime.DisplayName + " não encontrado.";
         RuntimeMissingPanel.Visibility = runtime == null && is64 ? Visibility.Visible : Visibility.Collapsed;
 
         var payload = Payload.IsPresent;

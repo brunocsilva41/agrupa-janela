@@ -102,7 +102,9 @@ public partial class MainWindow : Window
 
     private List<WindowCandidate> Selected()
     {
-        var selected = WindowsList.SelectedItems.Cast<WindowCandidate>().ToList();
+        // Na ordem da lista (não na ordem dos cliques): o grupo sai previsível.
+        var picked = WindowsList.SelectedItems.Cast<WindowCandidate>().ToHashSet();
+        var selected = _windows.Where(picked.Contains).ToList();
         if (selected.Count == 0) StatusText.Text = "Selecione ao menos uma janela na lista.";
         return selected;
     }

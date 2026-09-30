@@ -8,7 +8,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [1.0.0] - 2026-09-30
 
-Primeira versão pública.
+Primeira versão pública, feita sobre o **.NET 10 (LTS)**.
 
 ### Adicionado
 
@@ -24,7 +24,7 @@ Primeira versão pública.
 - Preferências: iniciar com o Windows (na bandeja), reabrir grupos salvos ao iniciar, item "Agrupar" no menu da barra de título, esconder a janela principal depois de agrupar.
 - Ao fechar um grupo ou sair: escolha entre devolver as janelas à área de trabalho ou fechar os apps também.
 - Proteção das janelas do usuário: em erro inesperado e ao desligar o Windows, as janelas são devolvidas; janelas acopladas escondidas por um encerramento forçado são mostradas de volta na próxima abertura.
-- Instalador por usuário, sem administrador, em `%LOCALAPPDATA%\Programs\SplitDeck`, que oferece baixar o .NET 8 Desktop Runtime oficial quando falta; versão portátil em ZIP; `SHA256SUMS.txt` em cada release.
+- Instalador por usuário, sem administrador, em `%LOCALAPPDATA%\Programs\SplitDeck`, que oferece baixar o .NET 10 Desktop Runtime oficial quando falta; versão portátil em ZIP; `SHA256SUMS.txt` em cada release.
 - Atualização automática pelos Releases do GitHub (no máximo 1x por dia, ou manual pela bandeja/janela principal): pergunta antes, baixa só do repositório oficial, confere o SHA-256 e atualiza devolvendo as janelas agrupadas. Pode ser desligada nas preferências.
 - Navegadores Chromium e apps Electron (Chrome, Edge, Brave, VS Code, Discord, Docker Desktop…) incorporados sem as faixas pretas da borda interna do Chromium.
 - Modo Acoplado usa o grupo como dono (owner) da janela: o Windows cuida da ordem, do minimizar junto e da barra de tarefas; a janela do app sobrevive se o SplitDeck for encerrado.

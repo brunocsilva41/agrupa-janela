@@ -109,7 +109,7 @@
           </DockPanel>
 
           <StackPanel x:Name="RuntimeMissingPanel" Visibility="Collapsed">
-            <TextBlock TextWrapping="Wrap" Text="O SplitDeck precisa do Microsoft .NET Desktop Runtime 8 (x64), gratuito, da Microsoft. O instalador pode baixá-lo do endereço oficial:"/>
+            <TextBlock TextWrapping="Wrap" Text="O SplitDeck precisa do Microsoft .NET Desktop Runtime 10 (x64), gratuito, da Microsoft. O instalador pode baixá-lo do endereço oficial:"/>
             <TextBox x:Name="RuntimeUrlBox" IsReadOnly="True" Foreground="{StaticResource Accent}" Margin="0,4,0,6" BorderThickness="0"/>
             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,10"
                        Text="Antes de executar, a assinatura digital do arquivo é conferida (precisa ser da Microsoft Corporation). O runtime é instalado para todo o computador, por isso o Windows vai pedir permissão de administrador (UAC) só para essa etapa. O SplitDeck em si continua sem administrador."/>

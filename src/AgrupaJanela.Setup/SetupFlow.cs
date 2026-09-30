@@ -38,7 +38,7 @@ internal static class SetupFlow
         return selfDir != null && RunEntry.SamePath(selfDir, existing.Location);
     }
 
-    /// <summary>Runtime 8.x x64 instalado (SPLITDECK_SETUP_TEST_NORUNTIME=1 simula ausência, só no modo teste).</summary>
+    /// <summary>Runtime exigido (DesktopRuntime.RequiredMajor) x64 instalado (SPLITDECK_SETUP_TEST_NORUNTIME=1 simula ausência, só no modo teste).</summary>
     public static string? FindRuntime(SetupContext ctx) => ctx.TestNoRuntime ? null : DesktopRuntime.FindInstalled();
 
     public static void LaunchApp(SetupContext ctx, string dir)

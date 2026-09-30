@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
@@ -10,8 +10,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>SplitDeck</AssemblyName>
     <AssemblyTitle>SplitDeck</AssemblyTitle>
-    <!-- WFAC010: DPI é configurado no manifesto de propósito (quem manda aqui é o WPF). -->
-    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <!-- WFAC010/WFO0003: DPI é configurado no manifesto de propósito (quem manda aqui é o WPF). -->
+    <NoWarn>$(NoWarn);WFAC010;WFO0003</NoWarn>
     <!-- Não usamos BinaryFormatter; o WinForms o habilitaria por padrão. -->
     <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
   </PropertyGroup>

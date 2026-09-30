@@ -86,7 +86,7 @@ By making a contribution to this project, I certify that:
 ## Ambiente
 
 - Windows 10 ou 11 (64 bits).
-- [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0).
+- [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0) (versão fixada em `global.json`).
 - Visual Studio 2022, Rider ou VS Code com a extensão C#.
 
 ```powershell
@@ -102,7 +102,7 @@ Antes de abrir o PR, teste à mão o que você mudou com apps reais: pelo menos 
 
 Imite o código vizinho. Os pontos principais:
 
-- **C# com .NET 8**, `Nullable` e `ImplicitUsings` ligados. Namespaces por arquivo (`namespace AgrupaJanela.Hosting;`), 4 espaços, chaves em linha própria. O [`.editorconfig`](.editorconfig) descreve a formatação.
+- **C# com .NET 10**, `Nullable` e `ImplicitUsings` ligados. Namespaces por arquivo (`namespace AgrupaJanela.Hosting;`), 4 espaços, chaves em linha própria. O [`.editorconfig`](.editorconfig) descreve a formatação.
 - **Comentários e textos da interface em português do Brasil.** Comente o *porquê* (limitação do Windows, bug de um app, decisão de segurança), não o óbvio.
 - **Handles e ponteiros como `nint`**, não `IntPtr`.
 - **Classes `sealed`** por padrão; `static class` para utilitários sem estado.

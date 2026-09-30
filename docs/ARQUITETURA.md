@@ -1,6 +1,6 @@
 # Arquitetura
 
-O SplitDeck é um app WPF (.NET 8, x64) que coloca janelas de **outros processos** dentro de uma janela própria, o "grupo". Este documento descreve as peças, os fluxos principais e o porquê das decisões. Os nomes citados são classes e arquivos reais de `src/AgrupaJanela`.
+O SplitDeck é um app WPF (.NET 10, x64) que coloca janelas de **outros processos** dentro de uma janela própria, o "grupo". Este documento descreve as peças, os fluxos principais e o porquê das decisões. Os nomes citados são classes e arquivos reais de `src/AgrupaJanela`.
 
 ## Visão geral
 

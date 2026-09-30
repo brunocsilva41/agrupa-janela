@@ -96,7 +96,7 @@ internal static class Headless
                 return SetupFlow.ExitFailed;
             }
             if (SetupFlow.FindRuntime(ctx) == null)
-                Log.Warn("Microsoft .NET Desktop Runtime 8 (x64) não encontrado: o app só vai abrir depois de instalá-lo (" + DesktopRuntime.DownloadUrl + ").");
+                Log.Warn(DesktopRuntime.DisplayName + " não encontrado: o app só vai abrir depois de instalá-lo (" + DesktopRuntime.DownloadUrl + ").");
             if (!await SetupFlow.EnsureAppClosedAsync(ctx, installDir, null)) return SetupFlow.ExitAppStillRunning;
 
             var sameDir = existing != null && RunEntry.SamePath(existing.Location, installDir);

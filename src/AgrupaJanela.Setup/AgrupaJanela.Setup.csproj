@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Instalador do Agrupa-Janela: WPF sobre .NET Framework 4.8 (já vem no Windows 10 1903+/11),
+    então roda sem baixar nada. Um único .exe: o payload (zip da saída do publish do app) vai embutido.
+    O build/package.ps1 gera o zip e passa -p:SetupPayload=<zip> -p:RequirePayload=true.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\build\assets\AgrupaJanela.ico</ApplicationIcon>
+    <AssemblyName>AgrupaJanela.Setup</AssemblyName>
+    <RootNamespace>AgrupaJanela.Setup</RootNamespace>
+    <AssemblyTitle>Instalador do Agrupa-Janela</AssemblyTitle>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- A versão exibida vem de AssemblyInformationalVersion; sem o sufixo +commit. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!-- Sem .pdb/.config ao lado: o artefato é só o .exe. -->
+    <DebugType Condition="'$(Configuration)' == 'Release'">embedded</DebugType>
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+    <SetupPayload Condition="'$(SetupPayload)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\payload\payload.zip</SetupPayload>
+    <RequirePayload Condition="'$(RequirePayload)' == ''">false</RequirePayload>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Só para compilar contra o .NET Framework 4.8 sem o Developer Pack instalado (não vai para a saída). -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Security" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Mesma paleta/estilos do app: o arquivo é o do próprio app (link, não cópia). -->
+    <Page Include="..\AgrupaJanela\Themes\Dark.xaml" Link="Themes\Dark.xaml" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('$(SetupPayload)')">
+    <EmbeddedResource Include="$(SetupPayload)" LogicalName="AgrupaJanela.Payload.zip" />
+  </ItemGroup>
+
+  <!-- Hash do payload vai no assembly para o Setup conferir a integridade antes de extrair. -->
+  <Target Name="AgrupaJanelaPayloadHash" BeforeTargets="GetAssemblyAttributes" Condition="Exists('$(SetupPayload)')">
+    <GetFileHash Files="$(SetupPayload)" Algorithm="SHA256" HashEncoding="hex">
+      <Output TaskParameter="Hash" PropertyName="AgrupaJanelaPayloadSha256" />
+    </GetFileHash>
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>PayloadSha256</_Parameter1>
+        <_Parameter2>$(AgrupaJanelaPayloadSha256)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="AgrupaJanelaPayloadCheck" BeforeTargets="CoreCompile">
+    <Error Condition="'$(RequirePayload)' == 'true' And !Exists('$(SetupPayload)')"
+           Text="Payload do instalador não encontrado: $(SetupPayload). Rode build/package.ps1." />
+    <Warning Condition="'$(RequirePayload)' != 'true' And !Exists('$(SetupPayload)')"
+             Text="AgrupaJanela.Setup compilado SEM payload (build de desenvolvimento): o instalador abre, mas não consegue instalar. Use build/package.ps1 para gerar o instalador completo." />
+  </Target>
+</Project>

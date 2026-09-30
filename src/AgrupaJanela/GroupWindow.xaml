@@ -1,0 +1,54 @@
+<Window x:Class="AgrupaJanela.GroupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Grupo" Width="1200" Height="750" MinWidth="420" MinHeight="300"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Text}" FontSize="12.5">
+  <DockPanel>
+    <!-- Barra do grupo -->
+    <Border DockPanel.Dock="Top" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="6,4">
+      <DockPanel LastChildFill="True">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <ToggleButton x:Name="SaveToggle" Style="{StaticResource Segment}" Checked="Save_Changed" Unchecked="Save_Changed"
+                        ToolTip="Salvar este grupo: layout e apps são lembrados e podem ser reabertos depois">
+            <TextBlock x:Name="SaveLabel" Text="☆ Salvar"/>
+          </ToggleButton>
+          <Button Content="⧉ Novo grupo" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Click="NewGroup_Click"
+                  ToolTip="Abrir outro grupo vazio para juntar outras janelas"/>
+          <Button x:Name="AddButton" Style="{StaticResource PrimaryButton}" Content="＋ Adicionar" Margin="6,0,0,0" Padding="10,3" Click="Add_Click"
+                  ToolTip="Adicionar uma janela aberta. Dica: arraste qualquer janela sobre o grupo segurando Shift."/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal">
+          <TextBox x:Name="NameBox" MinWidth="90" MaxWidth="220" FontWeight="SemiBold" VerticalAlignment="Center" Margin="2,0,10,0"
+                   ToolTip="Nome do grupo (clique para editar)" TextChanged="Name_Changed"/>
+
+          <Border Background="{StaticResource Bg}" CornerRadius="5" Padding="2">
+            <StackPanel Orientation="Horizontal">
+              <RadioButton x:Name="GridModeButton" Content="▦ Grade" GroupName="mode" IsChecked="True" Checked="Mode_Checked" ToolTip="Painéis lado a lado"/>
+              <RadioButton x:Name="TabsModeButton" Content="▭ Abas" GroupName="mode" Checked="Mode_Checked" ToolTip="Uma janela por aba"/>
+            </StackPanel>
+          </Border>
+
+          <Rectangle Width="1" Fill="{StaticResource Line}" Margin="10,3"/>
+          <TextBlock Text="Layout" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+          <StackPanel x:Name="PresetPanel" Orientation="Horizontal"/>
+          <Button Style="{StaticResource GhostButton}" Content="⇔ Igualar" Click="Equalize_Click" ToolTip="Deixa todos os painéis do mesmo tamanho"/>
+
+          <TextBlock x:Name="StatusText" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <Grid>
+      <ContentControl x:Name="ContentArea" Focusable="False" Margin="4"/>
+      <StackPanel x:Name="EmptyHint" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="Grupo vazio" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+        <TextBlock Foreground="{StaticResource TextDim}" Margin="0,6,0,0" TextAlignment="Center" LineHeight="20">
+          Clique em <Bold>＋ Adicionar</Bold>, arraste uma janela até aqui segurando <Bold>Shift</Bold>,<LineBreak/>
+          ou use o atalho de agrupar em qualquer janela.
+        </TextBlock>
+      </StackPanel>
+    </Grid>
+  </DockPanel>
+</Window>

@@ -1,0 +1,26 @@
+# Normaliza finais de linha no repositório; o checkout usa o padrão da máquina.
+* text=auto
+
+# Código
+*.cs     text diff=csharp
+*.xaml   text
+*.csproj text
+*.props  text
+*.targets text
+*.manifest text
+
+# Arquivos que o Windows/Visual Studio esperam com CRLF
+*.sln    text eol=crlf
+*.ps1    text eol=crlf
+*.psm1   text eol=crlf
+*.cmd    text eol=crlf
+*.bat    text eol=crlf
+
+# Binários
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.ico  binary
+*.exe  binary
+*.dll  binary
+*.zip  binary

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyTitle>Agrupa-Janela</AssemblyTitle>
+    <!-- WFAC010: DPI é configurado no manifesto de propósito (quem manda aqui é o WPF). -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <!-- Não usamos BinaryFormatter; o WinForms o habilitaria por padrão. -->
+    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AgrupaJanela.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Usamos WinForms só para o ícone da bandeja; evita conflito de nomes com o WPF. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+</Project>

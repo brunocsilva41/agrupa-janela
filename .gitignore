@@ -1,0 +1,29 @@
+# Saídas de build do .NET
+bin/
+obj/
+artifacts/
+dist/
+TestResults/
+*.binlog
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+*.DotSettings.user
+.vscode/*
+!.vscode/extensions.json
+
+# Sistema
+Thumbs.db
+Desktop.ini
+
+# Arquivos locais que não fazem parte do projeto
+codex-session-*.md
+
+# Protótipo antigo (HTML) que ficou na raiz
+/index.html
+/app.js
+/styles.css

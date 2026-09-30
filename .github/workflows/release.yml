@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+# Nada por padrão; cada job pede só o que precisa.
+permissions: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      DOTNET_NOLOGO: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versão a partir da tag
+        id: version
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ($env:TAG -notmatch '^v(\d+\.\d+\.\d+(-[0-9A-Za-z][0-9A-Za-z.-]*)?)$') {
+            Write-Error "Tag '$env:TAG' não está no formato vX.Y.Z ou vX.Y.Z-sufixo."
+            exit 1
+          }
+          $v = $Matches[1]
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "prerelease=$(if ($v.Contains('-')) { 'true' } else { 'false' })" >> $env:GITHUB_OUTPUT
+          Write-Host "Versão: $v"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore AgrupaJanela.sln
+
+      - name: Build (Release)
+        run: dotnet build AgrupaJanela.sln -c Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Testes
+        if: hashFiles('tests/**/*.csproj') != ''
+        shell: pwsh
+        run: |
+          $projects = Get-ChildItem -Path tests -Recurse -Filter *.csproj
+          foreach ($p in $projects) {
+            Write-Host "==> dotnet test $($p.FullName)"
+            dotnet test $p.FullName -c Release
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Pacote
+        shell: pwsh
+        run: ./build/package.ps1 -Version ${{ steps.version.outputs.version }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: |
+            artifacts/AgrupaJanela-Setup-${{ steps.version.outputs.version }}.exe
+            artifacts/AgrupaJanela-${{ steps.version.outputs.version }}-win-x64.zip
+            artifacts/SHA256SUMS.txt
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: assets
+
+      - name: Conferir hashes
+        working-directory: assets
+        run: sha256sum -c SHA256SUMS.txt
+
+      - name: Criar o GitHub Release
+        working-directory: assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
+        run: |
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" \
+            --verify-tag \
+            --title "Agrupa-Janela $VERSION" \
+            --generate-notes \
+            "${flags[@]}" \
+            "AgrupaJanela-Setup-$VERSION.exe" \
+            "AgrupaJanela-$VERSION-win-x64.zip" \
+            "SHA256SUMS.txt"

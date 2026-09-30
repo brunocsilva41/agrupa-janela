@@ -1,0 +1,105 @@
+name: Relatar um bug
+description: Algo não funciona como deveria no Agrupa-Janela.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por relatar. Quanto mais exato, mais rápido dá para corrigir.
+        **Vulnerabilidades de segurança não vão aqui**: use o relato privado em
+        https://github.com/brunocsilva41/agrupa-janela/security/advisories/new
+
+  - type: checkboxes
+    id: busca
+    attributes:
+      label: Antes de abrir
+      options:
+        - label: Procurei issues parecidas e não encontrei uma que trate deste problema.
+          required: true
+
+  - type: input
+    id: versao-app
+    attributes:
+      label: Versão do Agrupa-Janela
+      description: "A versão do release que você instalou ou baixou (ex.: 1.0.0), ou o commit se compilou do código."
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: instalacao
+    attributes:
+      label: Como foi instalado
+      options:
+        - Instalador
+        - Portátil (ZIP)
+        - Compilado a partir do código
+    validations:
+      required: true
+
+  - type: input
+    id: versao-windows
+    attributes:
+      label: Versão do Windows
+      description: "Tecle Win+R, digite `winver` e copie a linha da versão (ex.: Windows 11 23H2, compilação 22631.4169)."
+    validations:
+      required: true
+
+  - type: input
+    id: app-agrupado
+    attributes:
+      label: App que estava agrupando
+      description: "Nome e versão do app (ex.: Windows Terminal 1.21, Chrome 129, cmd.exe). Se forem vários, liste todos."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: modo
+    attributes:
+      label: Modo do painel
+      description: O ícone no cabeçalho do painel mostra o modo (▣ Incorporada, ◳ Acoplada).
+      options:
+        - Incorporada
+        - Acoplada
+        - Os dois (vários painéis)
+        - Não sei / o problema não é em um painel
+    validations:
+      required: true
+
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. Abrir o cmd.exe
+        2. Agrupar com Ctrl+Alt+G
+        3. Maximizar o grupo
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que era esperado
+    validations:
+      required: true
+
+  - type: textarea
+    id: obtido
+    attributes:
+      label: O que aconteceu
+      description: Inclua o texto exato de mensagens de erro ou da barra de status do grupo, se houver.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidencias
+    attributes:
+      label: Logs, capturas e arquivos
+      description: |
+        Capturas de tela ou vídeo curto ajudam muito. Se útil, anexe `%APPDATA%\AgrupaJanela\settings.json`.
+        Cuidado ao anexar `groups.json`: ele contém caminhos, argumentos de linha de comando e títulos de janelas.
+    validations:
+      required: false

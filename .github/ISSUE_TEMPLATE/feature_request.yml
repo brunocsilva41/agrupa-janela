@@ -1,0 +1,57 @@
+name: Sugerir um recurso
+description: Uma ideia de melhoria ou recurso novo para o Agrupa-Janela.
+title: "[Recurso] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sugestões são bem-vindas. Mudanças grandes são discutidas aqui antes de qualquer Pull Request
+        (veja o CONTRIBUTING.md).
+
+  - type: checkboxes
+    id: busca
+    attributes:
+      label: Antes de abrir
+      options:
+        - label: Procurei issues parecidas e não encontrei uma que trate desta ideia.
+          required: true
+
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isto resolve?
+      description: "Descreva a situação do dia a dia (ex.: \"tenho 4 terminais e preciso...\")."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Como você imagina a solução
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas que você considerou
+      description: Outras formas de resolver, inclusive o que você faz hoje.
+    validations:
+      required: false
+
+  - type: textarea
+    id: apps
+    attributes:
+      label: Apps envolvidos
+      description: Quais apps você agrupa quando precisa disto (nome e versão).
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribuir
+    attributes:
+      label: Contribuição
+      options:
+        - label: Tenho interesse em implementar isto (depois de a ideia ser aprovada na issue).
+          required: false

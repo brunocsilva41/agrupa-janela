@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Relatar uma vulnerabilidade de segurança
+    url: https://github.com/brunocsilva41/agrupa-janela/security/advisories/new
+    about: Relate de forma privada. Não abra issues públicas para problemas de segurança.

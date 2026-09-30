@@ -1,0 +1,145 @@
+<Window x:Class="AgrupaJanela.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Agrupa-Janela" Width="640" Height="820" MinWidth="460" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Text}" FontSize="12.5">
+  <Grid Margin="16,14,16,12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="2*"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Cabeçalho -->
+    <DockPanel Margin="0,0,0,14">
+      <Image x:Name="Logo" Width="30" Height="30" Margin="0,0,10,0" VerticalAlignment="Center"/>
+      <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="Sair" Click="Exit_Click" VerticalAlignment="Center"
+              ToolTip="Encerrar o Agrupa-Janela (fechar esta janela só esconde na bandeja)"/>
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock Text="Agrupa-Janela" FontSize="18" FontWeight="SemiBold"/>
+        <TextBlock Text="Junte janelas de qualquer app em uma só, com painéis redimensionáveis." Foreground="{StaticResource TextDim}"/>
+      </StackPanel>
+    </DockPanel>
+
+    <!-- Janelas abertas -->
+    <DockPanel Grid.Row="1">
+      <DockPanel DockPanel.Dock="Top">
+        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="↻ Atualizar" Click="Refresh_Click" Margin="0,-4,0,2"/>
+        <TextBlock Text="JANELAS ABERTAS" Style="{StaticResource SectionTitle}"/>
+      </DockPanel>
+      <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+        <Button Style="{StaticResource PrimaryButton}" Content="Novo grupo com as selecionadas" Click="NewGroup_Click" Padding="12,6"/>
+        <Button x:Name="AddToButton" Content="Adicionar a um grupo ▾" Click="AddTo_Click" Margin="8,0,0,0" Padding="12,6"/>
+      </StackPanel>
+      <ListBox x:Name="WindowsList" SelectionMode="Extended" MouseDoubleClick="WindowsList_DoubleClick" VirtualizingPanel.IsVirtualizing="False">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel>
+              <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding ProcessName}" Foreground="{StaticResource TextDim}" FontSize="11"/>
+                <TextBlock Text="{Binding BlockReason, StringFormat=' · {0}', TargetNullValue=''}" Foreground="{StaticResource Warn}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+
+    <TextBlock x:Name="StatusText" Grid.Row="2" Foreground="{StaticResource TextDim}" TextWrapping="Wrap" Margin="0,8,0,10"/>
+
+    <!-- Grupos -->
+    <Grid Grid.Row="3">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="12"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="GRUPOS ABERTOS" Style="{StaticResource SectionTitle}"/>
+        <Grid>
+        <ListBox x:Name="OpenGroupsList" MouseDoubleClick="OpenGroups_DoubleClick" ToolTip="Duplo clique para trazer o grupo para frente">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel>
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextDim}" FontSize="11"/>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock x:Name="OpenGroupsHint" Text="Nenhum grupo aberto" Foreground="{StaticResource TextDim}" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+        </Grid>
+      </DockPanel>
+      <DockPanel Grid.Column="2">
+        <TextBlock DockPanel.Dock="Top" Text="GRUPOS SALVOS" Style="{StaticResource SectionTitle}"/>
+        <Grid>
+        <ListBox x:Name="SavedList">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                  <Button Content="Abrir" Click="OpenSaved_Click" Padding="8,2"/>
+                  <Button Content="✕" Style="{StaticResource GhostButton}" Click="DeleteSaved_Click" ToolTip="Esquecer este grupo" Margin="2,0,0,0"/>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextDim}" FontSize="11"/>
+                </StackPanel>
+              </DockPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock x:Name="SavedHint" Foreground="{StaticResource TextDim}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" IsHitTestVisible="False"
+                   Text="Nenhum grupo salvo.&#10;Use ☆ Salvar dentro de um grupo."/>
+        </Grid>
+      </DockPanel>
+    </Grid>
+
+    <!-- Atalhos -->
+    <Border Grid.Row="4" Background="{StaticResource Surface}" CornerRadius="6" Padding="10,8" Margin="0,12,0,0">
+      <StackPanel>
+        <TextBlock Text="ATALHOS GLOBAIS" Style="{StaticResource SectionTitle}"/>
+        <ItemsControl x:Name="HotkeysList">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Margin="0,2,16,2">
+                <Border Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Padding="5,0">
+                  <TextBlock Text="{Binding Shortcut}" FontFamily="Consolas" FontSize="11.5"/>
+                </Border>
+                <TextBlock Text="{Binding Description}" Foreground="{StaticResource TextDim}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Foreground="{StaticResource TextDim}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap">
+          Arraste uma janela segurando <Bold>Shift</Bold> sobre um grupo (ou sobre outra janela, para criar um grupo com as duas).
+          Clique com o botão direito na barra de título de um app para <Bold>Agrupar</Bold>. Arraste o cabeçalho de um painel para reorganizar.
+        </TextBlock>
+        <TextBlock Text="PREFERÊNCIAS" Style="{StaticResource SectionTitle}" Margin="2,12,0,6"/>
+        <WrapPanel>
+          <CheckBox x:Name="StartupCheck" Content="Iniciar com o Windows (na bandeja)" Margin="0,2,18,4" Click="Prefs_Click"/>
+          <CheckBox x:Name="ReopenCheck" Content="Reabrir grupos salvos ao iniciar" Margin="0,2,18,4" Click="Prefs_Click"/>
+          <CheckBox x:Name="SysMenuCheck" Content="&quot;Agrupar&quot; no menu da barra de título" Margin="0,2,18,4" Click="Prefs_Click"/>
+          <CheckBox x:Name="HideMainCheck" Content="Esconder esta janela depois de agrupar" Margin="0,2,18,4" Click="Prefs_Click"/>
+          <CheckBox x:Name="UpdatesCheck" Content="Verificar atualizações automaticamente" Margin="0,2,18,4" Click="Prefs_Click"
+                    ToolTip="Uma vez por dia consulta os Releases do GitHub. É a única conexão de rede do app."/>
+        </WrapPanel>
+        <DockPanel Margin="0,10,0,0">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <Button Style="{StaticResource GhostButton}" Content="Verificar atualizações" Click="CheckUpdates_Click"/>
+            <Button Style="{StaticResource GhostButton}" Content="Reportar problema" Click="Report_Click" ToolTip="Abre o formulário de relato no GitHub"/>
+            <Button Style="{StaticResource GhostButton}" Content="GitHub" Click="GitHub_Click"/>
+          </StackPanel>
+          <TextBlock x:Name="AboutText" Foreground="{StaticResource TextDim}" FontSize="11" VerticalAlignment="Center"/>
+        </DockPanel>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

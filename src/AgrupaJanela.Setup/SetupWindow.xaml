@@ -1,0 +1,186 @@
+<Window x:Class="AgrupaJanela.Setup.SetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Instalar o Agrupa-Janela" Width="640" Height="460" ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen" UseLayoutRounding="True"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Text}" FontSize="12.5">
+  <Grid Margin="20,14,20,14">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Cabeçalho (igual ao do app) -->
+    <DockPanel Margin="0,0,0,12">
+      <Image x:Name="Logo" Width="30" Height="30" Margin="0,0,10,0" VerticalAlignment="Center"/>
+      <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
+        <Border x:Name="TestBadge" Visibility="Collapsed" HorizontalAlignment="Right" Margin="0,0,0,6"
+                BorderBrush="{StaticResource Warn}" BorderThickness="1" CornerRadius="4" Padding="6,1">
+          <TextBlock Text="MODO DE TESTE" Foreground="{StaticResource Warn}" FontSize="10.5" FontWeight="SemiBold"/>
+        </Border>
+        <StackPanel x:Name="StepDots" Orientation="Horizontal" HorizontalAlignment="Right"/>
+      </StackPanel>
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock Text="Agrupa-Janela" FontSize="18" FontWeight="SemiBold"/>
+        <TextBlock x:Name="PageTitle" Foreground="{StaticResource TextDim}"/>
+      </StackPanel>
+    </DockPanel>
+
+    <!-- Páginas -->
+    <Border Grid.Row="1" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="20,16">
+      <Grid x:Name="Pages">
+
+        <!-- 1. Boas-vindas -->
+        <StackPanel x:Name="PageWelcome">
+          <TextBlock Style="{StaticResource PageHeading}" Text="Bem-vindo ao instalador do Agrupa-Janela"/>
+          <TextBlock TextWrapping="Wrap" Text="Junte janelas de qualquer app em uma só, com painéis redimensionáveis ou abas."/>
+          <TextBlock TextWrapping="Wrap" Foreground="{StaticResource TextDim}" Margin="0,4,0,0"
+                     Text="Fica na bandeja do sistema; ao fechar um grupo, os apps voltam intactos para a área de trabalho."/>
+          <Border Margin="0,18,0,0" Background="{StaticResource Surface2}" CornerRadius="4" Padding="12,10">
+            <StackPanel>
+              <TextBlock><Run Foreground="{StaticResource TextDim}" Text="Versão deste instalador: "/><Run x:Name="VersionRun" FontWeight="SemiBold"/></TextBlock>
+              <TextBlock x:Name="InstalledText" Margin="0,4,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
+            </StackPanel>
+          </Border>
+          <Border x:Name="NoPayloadBanner" Visibility="Collapsed" Margin="0,12,0,0" BorderBrush="{StaticResource Danger}" BorderThickness="1" CornerRadius="4" Padding="12,10">
+            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Danger}"
+                       Text="Este instalador foi compilado SEM o pacote do app (build de desenvolvimento). Dá para conferir as telas, mas não é possível instalar. Gere o instalador completo com build/package.ps1."/>
+          </Border>
+        </StackPanel>
+
+        <!-- 2. O que vai acontecer -->
+        <StackPanel x:Name="PageWhat" Visibility="Collapsed">
+          <TextBlock Style="{StaticResource SectionTitle}" Text="PASTA DE INSTALAÇÃO"/>
+          <DockPanel>
+            <Button x:Name="DefaultDirButton" DockPanel.Dock="Right" Content="Padrão" Margin="8,0,0,0" MinWidth="72" Click="DefaultDir_Click"
+                    ToolTip="Voltar para a pasta padrão (só para o seu usuário)"/>
+            <Border Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="8,5">
+              <TextBox x:Name="DirBox" TextChanged="DirBox_TextChanged" BorderThickness="0"/>
+            </Border>
+          </DockPanel>
+          <TextBlock x:Name="DirError" Visibility="Collapsed" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{StaticResource Danger}"/>
+          <TextBlock x:Name="DirNote" Visibility="Collapsed" Margin="0,6,0,0" Style="{StaticResource Hint}"/>
+
+          <StackPanel Margin="0,16,0,0">
+            <DockPanel Margin="0,0,0,8">
+              <TextBlock Text="•" Foreground="{StaticResource Accent}" Width="14"/>
+              <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Sem administrador:"/> instala só para o seu usuário do Windows.</TextBlock>
+            </DockPanel>
+            <DockPanel Margin="0,0,0,8">
+              <TextBlock Text="•" Foreground="{StaticResource Accent}" Width="14"/>
+              <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="O que é criado:"/> um atalho no Menu Iniciar e uma entrada em Configurações › Aplicativos (Programas e Recursos), por onde dá para desinstalar.</TextBlock>
+            </DockPanel>
+            <DockPanel Margin="0,0,0,8">
+              <TextBlock Text="•" Foreground="{StaticResource Accent}" Width="14"/>
+              <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Seus dados:"/> grupos salvos e preferências ficam em <Run x:Name="DataDirRun"/>.</TextBlock>
+            </DockPanel>
+            <DockPanel>
+              <TextBlock Text="•" Foreground="{StaticResource Accent}" Width="14"/>
+              <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Privacidade:"/> o app não coleta dados. Só acessa a internet para verificar atualizações no GitHub, e isso pode ser desligado no app.</TextBlock>
+            </DockPanel>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- 3. Opções -->
+        <StackPanel x:Name="PageOptions" Visibility="Collapsed">
+          <TextBlock Style="{StaticResource PageHeading}" Text="Escolha as opções"/>
+          <CheckBox x:Name="DesktopBox" Content="Criar atalho na Área de Trabalho"/>
+          <TextBlock Style="{StaticResource Hint}" Margin="24,2,0,14" Text="O atalho no Menu Iniciar é sempre criado."/>
+          <CheckBox x:Name="StartupBox" Content="Iniciar com o Windows"/>
+          <TextBlock Style="{StaticResource Hint}" Margin="24,2,0,14" Text="Abre discretamente na bandeja do sistema quando você entra no Windows. Dá para mudar depois no app."/>
+          <CheckBox x:Name="LaunchBox" Content="Abrir o Agrupa-Janela ao terminar" IsChecked="True"/>
+          <TextBlock x:Name="LaunchHint" Style="{StaticResource Hint}" Margin="24,2,0,0" Text="Abre a janela principal assim que a instalação terminar."/>
+        </StackPanel>
+
+        <!-- 4. Requisitos -->
+        <StackPanel x:Name="PageReqs" Visibility="Collapsed">
+          <DockPanel Margin="0,0,0,8">
+            <Border x:Name="OsMark" Width="18" Height="18" CornerRadius="9" Margin="0,0,10,0" VerticalAlignment="Top">
+              <TextBlock x:Name="OsMarkText" Foreground="White" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <TextBlock x:Name="OsText" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,12">
+            <Border x:Name="RuntimeMark" Width="18" Height="18" CornerRadius="9" Margin="0,0,10,0" VerticalAlignment="Top">
+              <TextBlock x:Name="RuntimeMarkText" Foreground="White" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <TextBlock x:Name="RuntimeText" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </DockPanel>
+
+          <StackPanel x:Name="RuntimeMissingPanel" Visibility="Collapsed">
+            <TextBlock TextWrapping="Wrap" Text="O Agrupa-Janela precisa do Microsoft .NET Desktop Runtime 8 (x64), gratuito, da Microsoft. O instalador pode baixá-lo do endereço oficial:"/>
+            <TextBox x:Name="RuntimeUrlBox" IsReadOnly="True" Foreground="{StaticResource Accent}" Margin="0,4,0,6" BorderThickness="0"/>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,10"
+                       Text="Antes de executar, a assinatura digital do arquivo é conferida (precisa ser da Microsoft Corporation). O runtime é instalado para todo o computador, por isso o Windows vai pedir permissão de administrador (UAC) só para essa etapa. O Agrupa-Janela em si continua sem administrador."/>
+            <StackPanel Orientation="Horizontal">
+              <Button x:Name="DownloadButton" Style="{StaticResource PrimaryButton}" Content="Baixar e instalar o runtime" Padding="12,5" Click="Download_Click"/>
+              <Button x:Name="RecheckButton" Content="Verificar de novo" Padding="12,5" Margin="8,0,0,0" Click="Recheck_Click"/>
+            </StackPanel>
+            <ProgressBar x:Name="DownloadProgress" Margin="0,10,0,0" Visibility="Collapsed" Maximum="100"/>
+            <TextBlock x:Name="DownloadStatus" Margin="0,6,0,0" TextWrapping="Wrap" Style="{StaticResource Hint}"/>
+          </StackPanel>
+
+          <TextBlock x:Name="ReqsReady" Visibility="Collapsed" TextWrapping="Wrap" Foreground="{StaticResource TextDim}"
+                     Text="Tudo pronto. Clique em Instalar para começar."/>
+        </StackPanel>
+
+        <!-- 5. Progresso -->
+        <DockPanel x:Name="PageProgress" Visibility="Collapsed">
+          <DockPanel DockPanel.Dock="Bottom">
+            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="Abrir o log" Click="OpenLog_Click" VerticalAlignment="Center"/>
+            <TextBlock x:Name="LogPathText" Style="{StaticResource Hint}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+          </DockPanel>
+          <StackPanel>
+            <TextBlock x:Name="ProgressText" Margin="0,0,0,8" TextTrimming="CharacterEllipsis"/>
+            <ProgressBar x:Name="InstallProgress" Maximum="100"/>
+            <StackPanel x:Name="StepList" Margin="0,14,0,0"/>
+            <Border x:Name="ErrorPanel" Visibility="Collapsed" Margin="0,10,0,0" BorderBrush="{StaticResource Danger}" BorderThickness="1" CornerRadius="4" Padding="12,8">
+              <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Foreground="{StaticResource Danger}"/>
+            </Border>
+          </StackPanel>
+        </DockPanel>
+
+        <!-- 6. Conclusão -->
+        <StackPanel x:Name="PageDone" Visibility="Collapsed">
+          <DockPanel Margin="0,0,0,12">
+            <Border Width="26" Height="26" CornerRadius="13" Background="{StaticResource Accent}" Margin="0,0,12,0" VerticalAlignment="Center">
+              <TextBlock Text="✓" Foreground="White" FontSize="15" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <TextBlock x:Name="DoneHeading" Style="{StaticResource PageHeading}" Margin="0" VerticalAlignment="Center"/>
+          </DockPanel>
+          <TextBlock x:Name="DoneText" TextWrapping="Wrap" LineHeight="20"/>
+          <TextBlock x:Name="DoneNote" Margin="0,12,0,0" Style="{StaticResource Hint}"/>
+        </StackPanel>
+
+        <!-- Desinstalar -->
+        <StackPanel x:Name="PageUninstall" Visibility="Collapsed">
+          <TextBlock Style="{StaticResource PageHeading}" Text="Remover o Agrupa-Janela deste computador?"/>
+          <DockPanel Margin="0,0,0,8">
+            <TextBlock Text="•" Foreground="{StaticResource Accent}" Width="14"/>
+            <TextBlock TextWrapping="Wrap" Text="Se o app estiver aberto, ele será fechado e as janelas agrupadas voltam para a área de trabalho."/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,16">
+            <TextBlock Text="•" Foreground="{StaticResource Accent}" Width="14"/>
+            <TextBlock TextWrapping="Wrap">Serão removidos: a pasta <Run x:Name="UninstallDirRun" FontWeight="SemiBold"/>, os atalhos, a entrada em Programas e Recursos e o início com o Windows (se estiver ligado).</TextBlock>
+          </DockPanel>
+          <CheckBox x:Name="RemoveDataBox" Content="Apagar também meus grupos salvos e preferências"/>
+          <TextBlock x:Name="RemoveDataHint" Style="{StaticResource Hint}" Margin="24,2,0,0"/>
+        </StackPanel>
+
+        <!-- Mensagem simples (nada instalado, erro de início) -->
+        <StackPanel x:Name="PageMessage" Visibility="Collapsed">
+          <TextBlock x:Name="MessageHeading" Style="{StaticResource PageHeading}"/>
+          <TextBlock x:Name="MessageText" TextWrapping="Wrap"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Rodapé -->
+    <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False">
+      <Button x:Name="CancelButton" DockPanel.Dock="Left" Style="{StaticResource GhostButton}" Content="Cancelar" Padding="10,6" Click="Cancel_Click"/>
+      <Button x:Name="NextButton" DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Avançar" MinWidth="120" Padding="14,6" Margin="8,0,0,0" IsDefault="True" Click="Next_Click"/>
+      <Button x:Name="BackButton" DockPanel.Dock="Right" Content="Voltar" MinWidth="96" Padding="14,6" Click="Back_Click"/>
+    </DockPanel>
+  </Grid>
+</Window>

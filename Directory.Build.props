@@ -1,7 +1,7 @@
 <Project>
   <!-- Fonte única de versão e identidade. O CI sobrescreve a versão com -p:Version=X.Y.Z (vinda da tag vX.Y.Z). -->
   <PropertyGroup>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Bruno Silva</Authors>
     <Company>Bruno Silva</Company>
     <Product>SplitDeck</Product>

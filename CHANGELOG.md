@@ -6,6 +6,12 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+## [1.0.1] - 2026-09-30
+
+### Corrigido
+
+- Ícone do SplitDeck na barra de tarefas, no Menu Iniciar e em "Aplicativos instalados" (o executável estava sem ícone e aparecia o genérico do Windows). Janelas e bandeja passam a usar o mesmo arquivo de ícone, nítido em qualquer escala.
+
 ## [1.0.0] - 2026-09-30
 
 Primeira versão pública, feita sobre o **.NET 10 (LTS)**.
@@ -38,5 +44,6 @@ Primeira versão pública, feita sobre o **.NET 10 (LTS)**.
 - Instância única e sinais por usuário e sessão (`Local\SplitDeck.{SID}`); callbacks de eventos do Windows nunca deixam exceções escaparem.
 - IDs do menu de sistema compatíveis com a máscara de `WM_SYSCOMMAND`; itens de outros apps nunca são alterados.
 
-[Não lançado]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.0...HEAD
+[Não lançado]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/brunocsilva41/agrupa-janela/releases/tag/v1.0.0

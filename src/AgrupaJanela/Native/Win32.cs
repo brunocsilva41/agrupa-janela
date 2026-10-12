@@ -13,13 +13,13 @@ internal static class Win32
     public const long WS_EX_CLIENTEDGE = 0x200, WS_EX_DLGMODALFRAME = 0x1;
     public const uint SS_NOTIFY = 0x100;
 
-    public const int SW_SHOWNORMAL = 1, SW_SHOWMINIMIZED = 2, SW_RESTORE = 9;
+    public const int SW_SHOWNORMAL = 1, SW_SHOWMINIMIZED = 2, SW_SHOWNOACTIVATE = 4, SW_RESTORE = 9;
     public const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_NOZORDER = 0x4, SWP_NOACTIVATE = 0x10;
     public const uint SWP_FRAMECHANGED = 0x20, SWP_SHOWWINDOW = 0x40, SWP_ASYNCWINDOWPOS = 0x4000;
 
     public const int WM_SIZE = 0x0005, WM_CLOSE = 0x0010, WM_HOTKEY = 0x0312;
     public const uint GW_OWNER = 4, GA_ROOT = 2;
-    public const int DWMWA_CLOAKED = 14;
+    public const int DWMWA_CLOAKED = 14, DWM_CLOAKED_SHELL = 0x2;
     public const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_NOREPEAT = 0x4000;
     public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000, TOKEN_QUERY = 0x8;
     public const int TokenElevation = 20;
@@ -170,8 +170,99 @@ internal static class Win32
         return new string(buffer, 0, GetClassName(hwnd, buffer, buffer.Length));
     }
 
-    public static bool IsCloaked(nint hwnd) =>
-        DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, out var cloaked, sizeof(int)) == 0 && cloaked != 0;
+    public static bool IsCloaked(nint hwnd) => CloakReason(hwnd) != 0;
+
+    /// <summary>0 = visível; DWM_CLOAKED_SHELL = escondida pelo Windows (ex.: está em outra área de trabalho virtual).</summary>
+    public static int CloakReason(nint hwnd) =>
+        DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, out var cloaked, sizeof(int)) == 0 ? cloaked : 0;
+
+    // ---- Pasta atual de outro processo e árvore de processos (para reabrir terminais na mesma pasta) ----
+    private const uint PROCESS_VM_READ = 0x10, TH32CS_SNAPPROCESS = 0x2;
+    private const int ProcessBasicInformation = 0, MaxPathChars = 32767;
+
+    [DllImport("kernel32.dll")] private static extern bool ReadProcessMemory(nint process, nint address, byte[] buffer, nint size, out nint read);
+    [DllImport("kernel32.dll")] private static extern bool IsWow64Process(nint process, out bool wow64);
+    [DllImport("kernel32.dll")] private static extern bool GetProcessTimes(nint process, out long creation, out long exit, out long kernel, out long user);
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern nint CreateToolhelp32Snapshot(uint flags, uint pid);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern bool Process32FirstW(nint snapshot, ref PROCESSENTRY32 entry);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern bool Process32NextW(nint snapshot, ref PROCESSENTRY32 entry);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct PROCESSENTRY32
+    {
+        public int Size, Usage;
+        public uint ProcessId;
+        public nint DefaultHeapId;
+        public uint ModuleId, Threads, ParentProcessId;
+        public int PriorityClassBase, Flags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string ExeFile;
+    }
+
+    /// <summary>(processo, pai, nome do executável) de todos os processos. Vazio se a foto falhar.</summary>
+    public static List<(uint Pid, uint Parent, string Name)> ProcessParents()
+    {
+        var result = new List<(uint, uint, string)>();
+        var snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if (snapshot == -1) return result;
+        try
+        {
+            var entry = new PROCESSENTRY32 { Size = Marshal.SizeOf<PROCESSENTRY32>() };
+            for (var ok = Process32FirstW(snapshot, ref entry); ok; ok = Process32NextW(snapshot, ref entry))
+                result.Add((entry.ProcessId, entry.ParentProcessId, entry.ExeFile ?? ""));
+        }
+        finally { CloseHandle(snapshot); }
+        return result;
+    }
+
+    /// <summary>Quando o processo foi criado (FILETIME), ou null se não der para abrir.</summary>
+    public static long? GetProcessStart(uint pid)
+    {
+        var process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (process == 0) return null;
+        try { return GetProcessTimes(process, out var creation, out _, out _, out _) ? creation : null; }
+        finally { CloseHandle(process); }
+    }
+
+    /// <summary>
+    /// Pasta atual de outro processo (64 bits), lida do bloco de parâmetros dele (PEB). Só leitura; null se não der.
+    /// x64: PEB.ProcessParameters em +0x20; RTL_USER_PROCESS_PARAMETERS.CurrentDirectory.DosPath em +0x38.
+    /// </summary>
+    public static string? GetProcessCurrentDirectory(uint pid)
+    {
+        if (!Environment.Is64BitProcess) return null;
+        var process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, false, pid);
+        if (process == 0) return null;
+        try
+        {
+            if (!IsWow64Process(process, out var wow64) || wow64) return null; // processo 32 bits: o layout é outro
+            var info = Marshal.AllocHGlobal(48); // PROCESS_BASIC_INFORMATION
+            nint peb;
+            try
+            {
+                if (NtQueryInformationProcess(process, ProcessBasicInformation, info, 48, out _) != 0) return null;
+                peb = Marshal.ReadIntPtr(info, 8);
+            }
+            finally { Marshal.FreeHGlobal(info); }
+            if (peb == 0 || ReadPointer(process, peb + 0x20) is not { } parameters || parameters == 0) return null;
+
+            var header = new byte[16]; // UNICODE_STRING: Length (2), MaximumLength (2), padding (4), Buffer (8)
+            if (!ReadProcessMemory(process, parameters + 0x38, header, header.Length, out var read) || read != header.Length) return null;
+            var length = BitConverter.ToUInt16(header, 0);
+            var buffer = (nint)BitConverter.ToInt64(header, 8);
+            if (length == 0 || length % 2 != 0 || length > MaxPathChars * 2 || buffer == 0) return null;
+
+            var text = new byte[length];
+            if (!ReadProcessMemory(process, buffer, text, length, out read) || read != length) return null;
+            return System.Text.Encoding.Unicode.GetString(text);
+        }
+        finally { CloseHandle(process); }
+    }
+
+    private static nint? ReadPointer(nint process, nint address)
+    {
+        var bytes = new byte[8];
+        return ReadProcessMemory(process, address, bytes, bytes.Length, out var read) && read == bytes.Length ? (nint)BitConverter.ToInt64(bytes, 0) : null;
+    }
 
     /// <summary>Retorna true se o processo roda elevado. Se não der para ler o token, assume elevado (fail-closed).</summary>
     public static bool IsProcessElevated(uint pid)

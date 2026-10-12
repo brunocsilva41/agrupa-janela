@@ -49,7 +49,10 @@ flowchart TD
 | `DockNative`, `DockWatcher` | `Hosting/DockSync.cs` | Posicionamento, ordem Z, botão da barra de tarefas e ganchos WinEvent por processo para as acopladas. |
 | `EmbedPolicy` | `Hosting/EmbedPolicy.cs` | Decide o modo de cada janela. |
 | `WindowCatalog` | `Hosting/WindowCatalog.cs` | Lista janelas agrupáveis e explica por que outras não podem ser agrupadas (`BlockReason`). |
-| `AppIdentity`, `AppLauncher` | `Hosting/` | O que é salvo de cada app (executável, argumentos, título, último HWND e PID) e como reencontrá-lo ou relançá-lo. |
+| `AppIdentity`, `AppLauncher` | `Hosting/` | O que é salvo de cada app (executável, argumentos, título, último HWND e PID, pasta do terminal) e como reencontrá-lo ou relançá-lo. |
+| `AppVersionPath` | `Hosting/AppVersionPath.cs` | Reconhece o mesmo app entre versões (pacotes da Loja, apps Squirrel) e acha o executável atual para abrir. |
+| `TerminalDirectory` | `Hosting/TerminalDirectory.cs` | Pasta atual de um terminal (console clássico ou janela do Windows Terminal, via `PseudoConsoleWindow`). |
+| `PlaceholderHost` | `Hosting/PlaceholderHost.cs` | Painel de um app salvo que não está aberto (abrindo, não abriu, fechado), com Tentar de novo/Remover. |
 | `HotkeyService` | `Shell/HotkeyService.cs` | Atalhos globais numa janela só de mensagens. |
 | `SystemMenuIntegration` | `Shell/SystemMenuIntegration.cs` | Itens "Agrupar…" no menu de sistema de outros apps. |
 | `WindowDragWatcher` | `Shell/WindowDragWatcher.cs` | Detecta arraste de janelas de outros apps. |

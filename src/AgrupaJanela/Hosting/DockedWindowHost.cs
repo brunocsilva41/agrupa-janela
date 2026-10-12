@@ -76,7 +76,7 @@ public sealed class DockedWindowHost : FrameworkElement, IGroupedWindow
 
     public static DockedWindowHost Create(WindowCandidate candidate, Window group, DockWatcher watcher)
     {
-        var fresh = WindowCatalog.Describe(candidate.Handle)
+        var fresh = WindowCatalog.DescribeAnyDesktop(candidate.Handle)
             ?? throw new InvalidOperationException($"A janela \"{candidate.Title}\" não existe mais ou não pode ser agrupada.");
         if (fresh.BlockReason is { } reason) throw new InvalidOperationException($"\"{fresh.Title}\": {reason}.");
         return new DockedWindowHost(fresh, group, watcher);

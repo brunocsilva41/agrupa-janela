@@ -6,6 +6,19 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+### Corrigido
+
+- Grupos salvos não reabriam apps que se atualizam sozinhos: Windows Terminal e outros apps da Loja (a pasta muda a cada versão, e o atalho do Terminal é `wt.exe`) e apps Squirrel como o Discord (`app-<versão>`). O app passa a ser reconhecido pela família do pacote/pasta raiz e é aberto na versão atual.
+- A janela reaberta não era gravada no grupo salvo (o HWND/processo antigo ficava no arquivo), então a próxima reabertura não reencontrava a janela e abria outra.
+- Um grupo salvo podia perder seus apps do arquivo quando eles não abriam e o grupo era alterado em seguida (ex.: trocar para abas).
+
+### Adicionado
+
+- Reabrir um grupo salvo devolve o estado de cada painel: aba/painel ativo, painel maximizado e modo incorporada/acoplada.
+- A janela de antes é reaproveitada mesmo minimizada, escondida na bandeja ou em outra área de trabalho virtual; se o app foi reiniciado, uma janela dele com o mesmo título é usada antes de abrir outra.
+- Apps que não abrem ficam no lugar como um painel com **Tentar de novo** e **Remover do grupo**; num grupo salvo, um app fechado deixa um painel **Reabrir**.
+- Terminais (Windows Terminal e console clássico) reabrem na pasta em que estavam.
+
 ## [1.0.1] - 2026-09-30
 
 ### Corrigido

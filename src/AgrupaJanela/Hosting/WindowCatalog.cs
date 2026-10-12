@@ -52,9 +52,14 @@ public static class WindowCatalog
     /// <summary>Versão leve para eventos frequentes: não busca o nome do processo.</summary>
     public static WindowCandidate? DescribeFast(nint hwnd) => Describe(hwnd, withProcessName: false);
 
-    private static WindowCandidate? Describe(nint hwnd, bool withProcessName)
+    /// <summary>Como Describe, mas aceita a janela escondida pelo Windows por estar em outra área de trabalho virtual.</summary>
+    public static WindowCandidate? DescribeAnyDesktop(nint hwnd) => Describe(hwnd, withProcessName: true, anyDesktop: true);
+
+    private static WindowCandidate? Describe(nint hwnd, bool withProcessName, bool anyDesktop = false)
     {
-        if (!Win32.IsWindow(hwnd) || !Win32.IsWindowVisible(hwnd) || Win32.IsCloaked(hwnd)) return null;
+        if (!Win32.IsWindow(hwnd) || !Win32.IsWindowVisible(hwnd)) return null;
+        var cloak = Win32.CloakReason(hwnd);
+        if (cloak != 0 && !(anyDesktop && cloak == Win32.DWM_CLOAKED_SHELL)) return null;
         if (Win32.GetWindow(hwnd, Win32.GW_OWNER) != 0) return null;
 
         var style = (long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE);

@@ -1,4 +1,5 @@
 using AgrupaJanela.Native;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace AgrupaJanela.Hosting;
@@ -6,6 +7,10 @@ namespace AgrupaJanela.Hosting;
 /// <summary>O suficiente para reencontrar ou reabrir o aplicativo de um painel salvo.</summary>
 public sealed record AppIdentity(string? ExePath, string? Arguments, string Title, long LastHandle, uint LastProcessId)
 {
+    /// <summary>Terminais: a pasta em que estavam, para reabrir no mesmo lugar.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? WorkingDirectory { get; init; }
+
     public static AppIdentity Of(WindowCandidate candidate)
     {
         var path = Win32.GetProcessPath(candidate.ProcessId);

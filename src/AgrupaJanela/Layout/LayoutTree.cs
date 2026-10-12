@@ -1,4 +1,5 @@
 using AgrupaJanela.Hosting;
+using System.Text.Json.Serialization;
 
 namespace AgrupaJanela.Layout;
 
@@ -219,16 +220,17 @@ public sealed class LayoutTree
 
     // ---------- Serialização ----------
 
-    public NodeDto? ToDto() => ToDto(Root);
+    /// <summary>Folhas na mesma ordem de Leaves(). identity: o que salvar de cada app (padrão: Host.Identity).</summary>
+    public NodeDto? ToDto(Func<IGroupedWindow, AppIdentity>? identity = null) => ToDto(Root, identity ?? (h => h.Identity));
 
-    private static NodeDto? ToDto(LayoutNode? node) => node switch
+    private static NodeDto? ToDto(LayoutNode? node, Func<IGroupedWindow, AppIdentity> identity) => node switch
     {
-        LeafNode leaf => new NodeDto { App = leaf.Host.Identity },
+        LeafNode leaf => new NodeDto { App = identity(leaf.Host), Mode = leaf.Host.Mode },
         SplitNode split => new NodeDto
         {
             Horizontal = split.Horizontal,
             Weights = split.Weights.ToList(),
-            Children = split.Children.Select(ToDto).OfType<NodeDto>().ToList(),
+            Children = split.Children.Select(c => ToDto(c, identity)).OfType<NodeDto>().ToList(),
         },
         _ => null,
     };
@@ -278,6 +280,9 @@ public sealed class LayoutTree
 public sealed class NodeDto
 {
     public AppIdentity? App { get; set; }
+    /// <summary>Folha: o modo (incorporada/acoplada) em que o app estava.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public EmbedMode Mode { get; set; }
     public bool Horizontal { get; set; }
     public List<double> Weights { get; set; } = new();
     public List<NodeDto> Children { get; set; } = new();

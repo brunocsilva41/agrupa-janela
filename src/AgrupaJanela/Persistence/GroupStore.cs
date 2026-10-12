@@ -16,6 +16,10 @@ public sealed class SavedGroup
     public double Width { get; set; } = 1200;
     public double Height { get; set; } = 750;
     public bool Maximized { get; set; }
+    /// <summary>Painel ativo (aba selecionada no modo abas), na ordem das folhas do layout; -1 = nenhum.</summary>
+    public int ActiveIndex { get; set; } = -1;
+    /// <summary>Painel maximizado dentro do grupo (modo grade), na ordem das folhas; -1 = nenhum.</summary>
+    public int MaximizedIndex { get; set; } = -1;
     public DateTime SavedAt { get; set; }
 
     public int AppCount => Count(Layout);
@@ -98,6 +102,8 @@ public sealed class GroupStore
         if (!double.IsFinite(group.Top) || Math.Abs(group.Top) > 50000) group.Top = double.NaN;
         var apps = 0;
         group.Layout = SanitizeNode(group.Layout, 0, ref apps);
+        if (group.ActiveIndex < -1 || group.ActiveIndex >= apps) group.ActiveIndex = -1;
+        if (group.MaximizedIndex < -1 || group.MaximizedIndex >= apps) group.MaximizedIndex = -1;
         return true;
     }
 

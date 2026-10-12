@@ -278,14 +278,9 @@ public sealed class AppController : IDisposable
         LastActive = group;
         group.Activated += (_, _) => LastActive = group;
         group.NewGroupRequested += g => NewEmptyGroup(g);
-        group.Changed += (g, persist) =>
+        group.Changed += g =>
         {
-            if (g.IsSaved)
-            {
-                var snapshot = g.ToSaved();
-                if (!persist && Store.Groups.FirstOrDefault(x => x.Id == g.Id) is { } previous) snapshot.Layout = previous.Layout;
-                Store.Save(snapshot);
-            }
+            if (g.IsSaved) Store.Save(g.ToSaved());
             GroupsChanged?.Invoke();
         };
         group.SaveToggled += g =>
@@ -450,7 +445,7 @@ public sealed class AppController : IDisposable
 
     public void Exit()
     {
-        var open = Groups.Where(g => g.Count > 0).ToList();
+        var open = Groups.Where(g => g.HasWindows).ToList();
         var closeApps = false;
         if (open.Count > 0)
         {

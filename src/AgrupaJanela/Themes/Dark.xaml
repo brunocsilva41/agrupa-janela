@@ -12,8 +12,18 @@
   <SolidColorBrush x:Key="TextDim" Color="#9A9EA6"/>
   <SolidColorBrush x:Key="Accent" Color="#4C8DFF"/>
   <SolidColorBrush x:Key="AccentSoft" Color="#1F3A66"/>
+  <!-- Fundo de botões primários (Accent continua para bordas e indicadores) -->
+  <SolidColorBrush x:Key="AccentFill" Color="#2F6FE0"/>
+  <SolidColorBrush x:Key="AccentFillHover" Color="#3A7BEA"/>
+  <SolidColorBrush x:Key="AccentFillPressed" Color="#2458B8"/>
+  <!-- Texto secundário dentro de botões primários (sólido, sem Opacity) -->
+  <SolidColorBrush x:Key="TextOnAccent" Color="#E6EEFF"/>
+  <!-- Contornos interativos: caixa de CheckBox, alça do GridSplitter, polegar da ScrollBar -->
+  <SolidColorBrush x:Key="LineStrong" Color="#5A5D64"/>
+  <SolidColorBrush x:Key="ThumbHover" Color="#7A7E86"/>
   <SolidColorBrush x:Key="Warn" Color="#E0A458"/>
-  <SolidColorBrush x:Key="Danger" Color="#E5534B"/>
+  <SolidColorBrush x:Key="Danger" Color="#F47067"/>
+  <SolidColorBrush x:Key="DangerHover" Color="#F8857E"/>
 
   <Style x:Key="FocusNone" TargetType="Control">
     <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -45,12 +55,50 @@
     </Setter>
   </Style>
 
-  <!-- Botão de destaque -->
+  <!-- Botão de destaque: fundo AccentFill, com cor própria para hover e pressionado -->
   <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-    <Setter Property="Background" Value="{StaticResource Accent}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+    <Setter Property="Background" Value="{StaticResource AccentFill}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource AccentFill}"/>
     <Setter Property="Foreground" Value="White"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource AccentFillHover}"/></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource AccentFillPressed}"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Ação destrutiva (ex.: remover um grupo salvo): vermelho, nunca azul -->
+  <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Background" Value="{StaticResource Danger}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource Danger}"/>
+    <Setter Property="Foreground" Value="{StaticResource Bg}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource DangerHover}"/></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource Danger}"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 
   <!-- Botão sem fundo (ícones, cabeçalhos) -->
@@ -148,7 +196,10 @@
               <Thumb>
                 <Thumb.Template>
                   <ControlTemplate TargetType="Thumb">
-                    <Border Background="{StaticResource Pressed}" CornerRadius="4" Margin="1"/>
+                    <Border x:Name="thumb" Background="{StaticResource LineStrong}" CornerRadius="4" Margin="1"/>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="thumb" Property="Background" Value="{StaticResource ThumbHover}"/></Trigger>
+                    </ControlTemplate.Triggers>
                   </ControlTemplate>
                 </Thumb.Template>
               </Thumb>
@@ -199,11 +250,11 @@
       <Setter.Value>
         <ControlTemplate TargetType="GridSplitter">
           <Border x:Name="b" Background="{TemplateBinding Background}">
-            <Border x:Name="grip" Background="{StaticResource Line}" CornerRadius="1"/>
+            <Border x:Name="grip" Background="{StaticResource LineStrong}" CornerRadius="1"/>
           </Border>
           <ControlTemplate.Triggers>
-            <Trigger Property="ResizeDirection" Value="Columns"><Setter TargetName="grip" Property="Width" Value="2"/><Setter TargetName="grip" Property="Height" Value="28"/></Trigger>
-            <Trigger Property="ResizeDirection" Value="Rows"><Setter TargetName="grip" Property="Height" Value="2"/><Setter TargetName="grip" Property="Width" Value="28"/></Trigger>
+            <Trigger Property="ResizeDirection" Value="Columns"><Setter TargetName="grip" Property="Width" Value="3"/><Setter TargetName="grip" Property="Height" Value="32"/></Trigger>
+            <Trigger Property="ResizeDirection" Value="Rows"><Setter TargetName="grip" Property="Height" Value="3"/><Setter TargetName="grip" Property="Width" Value="32"/></Trigger>
             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource AccentSoft}"/><Setter TargetName="grip" Property="Background" Value="{StaticResource Accent}"/></Trigger>
             <Trigger Property="IsDragging" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource Accent}"/></Trigger>
           </ControlTemplate.Triggers>
@@ -263,7 +314,7 @@
       <Setter.Value>
         <ControlTemplate TargetType="CheckBox">
           <StackPanel Orientation="Horizontal" Background="Transparent">
-            <Border x:Name="box" Width="16" Height="16" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Line}" Background="{StaticResource Surface2}" VerticalAlignment="Center">
+            <Border x:Name="box" Width="16" Height="16" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource LineStrong}" Background="{StaticResource Surface2}" VerticalAlignment="Center">
               <TextBlock x:Name="mark" Text="✓" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
             </Border>
             <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>

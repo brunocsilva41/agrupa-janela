@@ -33,7 +33,12 @@ public sealed class ChoiceDialog : Window
             var content = new StackPanel();
             content.Children.Add(new TextBlock { Text = label, FontWeight = FontWeights.SemiBold });
             if (hint.Length > 0)
-                content.Children.Add(new TextBlock { Text = hint, FontSize = 11.5, Opacity = 0.75, TextWrapping = TextWrapping.Wrap });
+                content.Children.Add(new TextBlock
+                {
+                    Text = hint, FontSize = 11.5, TextWrapping = TextWrapping.Wrap,
+                    // Sólido (sem Opacity): em botão primário usa a cor de texto sobre o azul; em cartão neutro, TextDim.
+                    Foreground = (System.Windows.Media.Brush)Application.Current.Resources[primary ? "TextOnAccent" : "TextDim"],
+                });
             var button = new Button
             {
                 Content = content, HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(12, 8, 12, 8),

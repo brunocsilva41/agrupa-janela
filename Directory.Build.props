@@ -8,5 +8,6 @@
     <Copyright>© 2026 Bruno Silva</Copyright>
     <RepositoryUrl>https://github.com/brunocsilva41/agrupa-janela</RepositoryUrl>
     <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 </Project>

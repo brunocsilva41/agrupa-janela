@@ -35,16 +35,27 @@ jobs:
         run: dotnet build AgrupaJanela.sln -c Release --no-restore
 
       # Roda cada projeto de teste em tests/ (inclusive os que ainda não estão no .sln).
+      # Dados do app em pasta de CI (SPLITDECK_DATA): não toca em %APPDATA% do runner.
+      # Resultados TRX e cobertura (coletor nativo, cobertura Cobertura) vão para TestResults/.
       - name: Testes
         if: hashFiles('tests/**/*.csproj') != ''
         shell: pwsh
         run: |
+          $env:SPLITDECK_DATA = "$env:RUNNER_TEMP\splitdeck-ci"
           $projects = Get-ChildItem -Path tests -Recurse -Filter *.csproj
           foreach ($p in $projects) {
             Write-Host "==> dotnet test $($p.FullName)"
-            dotnet test $p.FullName -c Release
+            dotnet test $p.FullName -c Release --logger "trx;LogFileName=$($p.BaseName).trx" --results-directory TestResults --collect "Code Coverage;Format=cobertura"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+
+      - uses: actions/upload-artifact@v7
+        if: always() && hashFiles('TestResults/**') != ''
+        with:
+          name: testes-ci-${{ github.sha }}
+          path: TestResults
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Pacote (0.0.0-ci)
         shell: pwsh

@@ -136,7 +136,7 @@ public partial class MainWindow : Window
             item.Click += (_, _) => Report(_app.AddTo(group, selected));
             menu.Items.Add(item);
         }
-        var fresh = new MenuItem { Header = "＋ Novo grupo" };
+        var fresh = new MenuItem { Header = "Novo grupo" };
         fresh.Click += (_, _) => Report(_app.AddTo(_app.CreateGroup(), selected));
         menu.Items.Add(fresh);
         menu.IsOpen = true;

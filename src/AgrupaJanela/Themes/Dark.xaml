@@ -343,6 +343,13 @@
     </Setter>
   </Style>
 
+  <!-- Ícones da interface: glifos do Segoe MDL2 Assets (sempre num TextBlock separado do texto) -->
+  <Style x:Key="IconText" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
   <Style x:Key="SectionTitle" TargetType="TextBlock">
     <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
     <Setter Property="FontSize" Value="11"/>

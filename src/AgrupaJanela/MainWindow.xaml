@@ -27,7 +27,12 @@
     <!-- Janelas abertas -->
     <DockPanel Grid.Row="1">
       <DockPanel DockPanel.Dock="Top">
-        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="↻ Atualizar" Click="Refresh_Click" Margin="0,-4,0,2"/>
+        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Click="Refresh_Click" Margin="0,-4,0,2">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource IconText}" Text="&#xE72C;"/>
+            <TextBlock Text="Atualizar" Margin="6,0,0,0"/>
+          </StackPanel>
+        </Button>
         <TextBlock Text="JANELAS ABERTAS" Style="{StaticResource SectionTitle}"/>
       </DockPanel>
       <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
@@ -83,7 +88,10 @@
               <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                   <Button Content="Abrir" Click="OpenSaved_Click" Padding="8,2"/>
-                  <Button Content="✕" Style="{StaticResource GhostButton}" Click="DeleteSaved_Click" ToolTip="Esquecer este grupo" Margin="2,0,0,0"/>
+                  <Button Style="{StaticResource GhostButton}" Click="DeleteSaved_Click" ToolTip="Esquecer este grupo"
+                          AutomationProperties.Name="Esquecer este grupo" Margin="2,0,0,0">
+                    <TextBlock Style="{StaticResource IconText}" FontSize="10" Text="&#xE8BB;"/>
+                  </Button>
                 </StackPanel>
                 <StackPanel>
                   <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
@@ -94,7 +102,7 @@
           </ListBox.ItemTemplate>
         </ListBox>
         <TextBlock x:Name="SavedHint" Foreground="{StaticResource TextDim}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" IsHitTestVisible="False"
-                   Text="Nenhum grupo salvo.&#10;Use ☆ Salvar dentro de um grupo."/>
+                   Text="Nenhum grupo salvo.&#10;Use Salvar dentro de um grupo."/>
         </Grid>
       </DockPanel>
     </Grid>

@@ -11,12 +11,25 @@
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
           <ToggleButton x:Name="SaveToggle" Style="{StaticResource Segment}" Checked="Save_Changed" Unchecked="Save_Changed"
                         ToolTip="Salvar este grupo: layout e apps são lembrados e podem ser reabertos depois">
-            <TextBlock x:Name="SaveLabel" Text="☆ Salvar"/>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock x:Name="SaveIcon" Style="{StaticResource IconText}" Text="&#xE734;"/>
+              <TextBlock x:Name="SaveLabel" Text="Salvar" Margin="6,0,0,0"/>
+            </StackPanel>
           </ToggleButton>
-          <Button Content="⧉ Novo grupo" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Click="NewGroup_Click"
-                  ToolTip="Abrir outro grupo vazio para juntar outras janelas"/>
-          <Button x:Name="AddButton" Style="{StaticResource PrimaryButton}" Content="＋ Adicionar" Margin="6,0,0,0" Padding="10,3" Click="Add_Click"
-                  ToolTip="Adicionar uma janela aberta. Dica: arraste qualquer janela sobre o grupo segurando Shift."/>
+          <Button Style="{StaticResource GhostButton}" Margin="6,0,0,0" Click="NewGroup_Click"
+                  ToolTip="Abrir outro grupo vazio para juntar outras janelas" AutomationProperties.Name="Novo grupo">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource IconText}" Text="&#xE78B;"/>
+              <TextBlock Text="Novo grupo" Margin="6,0,0,0"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="AddButton" Style="{StaticResource PrimaryButton}" Margin="6,0,0,0" Padding="10,3" Click="Add_Click"
+                  ToolTip="Adicionar uma janela aberta. Dica: arraste qualquer janela sobre o grupo segurando Shift.">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource IconText}" Text="&#xE710;"/>
+              <TextBlock Text="Adicionar" Margin="6,0,0,0"/>
+            </StackPanel>
+          </Button>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal">
@@ -25,15 +38,30 @@
 
           <Border Background="{StaticResource Bg}" CornerRadius="5" Padding="2">
             <StackPanel Orientation="Horizontal">
-              <RadioButton x:Name="GridModeButton" Content="▦ Grade" GroupName="mode" IsChecked="True" Checked="Mode_Checked" ToolTip="Painéis lado a lado"/>
-              <RadioButton x:Name="TabsModeButton" Content="▭ Abas" GroupName="mode" Checked="Mode_Checked" ToolTip="Uma janela por aba"/>
+              <RadioButton x:Name="GridModeButton" GroupName="mode" IsChecked="True" Checked="Mode_Checked" ToolTip="Painéis lado a lado">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Style="{StaticResource IconText}" Text="&#xF0E2;"/>
+                  <TextBlock Text="Grade" Margin="6,0,0,0"/>
+                </StackPanel>
+              </RadioButton>
+              <RadioButton x:Name="TabsModeButton" GroupName="mode" Checked="Mode_Checked" ToolTip="Uma janela por aba">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Style="{StaticResource IconText}" Text="&#xE7C4;"/>
+                  <TextBlock Text="Abas" Margin="6,0,0,0"/>
+                </StackPanel>
+              </RadioButton>
             </StackPanel>
           </Border>
 
           <Rectangle Width="1" Fill="{StaticResource Line}" Margin="10,3"/>
           <TextBlock Text="Layout" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" Margin="0,0,4,0"/>
           <StackPanel x:Name="PresetPanel" Orientation="Horizontal"/>
-          <Button Style="{StaticResource GhostButton}" Content="⇔ Igualar" Click="Equalize_Click" ToolTip="Deixa todos os painéis do mesmo tamanho"/>
+          <Button Style="{StaticResource GhostButton}" Click="Equalize_Click" ToolTip="Deixa todos os painéis do mesmo tamanho">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource IconText}" Text="&#xE9A6;"/>
+              <TextBlock Text="Igualar" Margin="6,0,0,0"/>
+            </StackPanel>
+          </Button>
 
           <TextBlock x:Name="StatusText" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
@@ -45,7 +73,7 @@
       <StackPanel x:Name="EmptyHint" HorizontalAlignment="Center" VerticalAlignment="Center">
         <TextBlock Text="Grupo vazio" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
         <TextBlock Foreground="{StaticResource TextDim}" Margin="0,6,0,0" TextAlignment="Center" LineHeight="20">
-          Clique em <Bold>＋ Adicionar</Bold>, arraste uma janela até aqui segurando <Bold>Shift</Bold>,<LineBreak/>
+          Clique em <Bold>Adicionar</Bold>, arraste uma janela até aqui segurando <Bold>Shift</Bold>,<LineBreak/>
           ou use o atalho de agrupar em qualquer janela.
         </TextBlock>
       </StackPanel>

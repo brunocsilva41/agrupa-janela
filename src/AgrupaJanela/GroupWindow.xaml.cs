@@ -651,7 +651,7 @@ public partial class GroupWindow : Window
         view.MaximizeButton.Click += (_, _) => ToggleMaximize(host);
         view.CloseButton.Click += (_, _) => Remove(host, closeApp: false);
         view.ModeButton.Click += (_, _) => ShowModeMenu(host, view.ModeButton);
-        view.MaximizeButton.Content = _maximized == host ? "⤡" : "⤢";
+        view.MaximizeButton.Content = GlyphIcon(_maximized == host ? '\uE73F' : '\uE740');
         view.MaximizeButton.ToolTip = _maximized == host ? "Restaurar layout (duplo clique no cabeçalho)" : "Maximizar painel (duplo clique no cabeçalho)";
         AutomationProperties.SetName(view.MaximizeButton, _maximized == host ? "Restaurar layout" : "Maximizar painel");
         AutomationProperties.SetName(view.CloseButton, "Desagrupar");
@@ -756,7 +756,8 @@ public partial class GroupWindow : Window
             title.MaxWidth = 220;
             title.VerticalAlignment = VerticalAlignment.Center;
             header.Children.Add(title);
-            var close = new Button { Content = "✕", Style = (Style)FindResource("GhostButton"), Padding = new Thickness(5, 0, 5, 0), Margin = new Thickness(6, 0, 0, 0), FontSize = 10, ToolTip = "Desagrupar (o app continua aberto)", Focusable = false };
+            var close = new Button { Content = GlyphIcon('\uE8BB', 10), Style = (Style)FindResource("GhostButton"), Padding = new Thickness(5, 0, 5, 0), Margin = new Thickness(6, 0, 0, 0), ToolTip = "Desagrupar (o app continua aberto)", Focusable = false };
+            AutomationProperties.SetName(close, "Desagrupar");
             close.Click += (_, _) => Remove(host, closeApp: false);
             header.Children.Add(close);
             tabs.Items.Add(new TabItem { Header = header, Content = host.View });
@@ -882,8 +883,13 @@ public partial class GroupWindow : Window
         _syncingSave = true;
         SaveToggle.IsChecked = saved;
         _syncingSave = false;
-        SaveLabel.Text = saved ? "★ Salvo" : "☆ Salvar";
+        SaveIcon.Text = saved ? "\uE735" : "\uE734"; // estrela cheia / vazia
+        SaveLabel.Text = saved ? "Salvo" : "Salvar";
     }
+
+    /// <summary>Ícone do Segoe MDL2 Assets (glifo separado do texto).</summary>
+    private static TextBlock GlyphIcon(char glyph, double size = 12) =>
+        new() { Text = glyph.ToString(), Style = (Style)Application.Current.Resources["IconText"], FontSize = size };
 
     private void NewGroup_Click(object sender, RoutedEventArgs e) => NewGroupRequested?.Invoke(this);
 
@@ -924,10 +930,10 @@ public partial class GroupWindow : Window
             _title.Margin = new Thickness(4, 0, 4, 0);
 
             MaximizeButton = new Button { Style = ghost, Padding = new Thickness(6, 0, 6, 0), Focusable = false };
-            CloseButton = new Button { Content = "✕", Style = ghost, Padding = new Thickness(6, 0, 6, 0), FontSize = 10, Focusable = false, ToolTip = "Desagrupar (o app continua aberto)" };
+            CloseButton = new Button { Content = GlyphIcon('\uE8BB', 10), Style = ghost, Padding = new Thickness(6, 0, 6, 0), Focusable = false, ToolTip = "Desagrupar (o app continua aberto)" };
             ModeButton = new Button
             {
-                Content = host.Mode == EmbedMode.Dock ? "◳" : "▣", Style = ghost, Padding = new Thickness(6, 0, 6, 0), Focusable = false,
+                Content = GlyphIcon(host.Mode == EmbedMode.Dock ? '\uE8A7' : '\uE8A1'), Style = ghost, Padding = new Thickness(6, 0, 6, 0), Focusable = false,
                 ToolTip = host.Mode == EmbedMode.Dock
                     ? "Acoplada: janela real posicionada sobre o painel (ideal para navegadores e apps com GPU). Clique para trocar."
                     : "Incorporada: janela dentro do painel (ideal para terminais e apps clássicos). Clique para trocar.",
@@ -938,7 +944,10 @@ public partial class GroupWindow : Window
             _buttons.Children.Add(MaximizeButton);
             _buttons.Children.Add(CloseButton);
 
-            var grip = new TextBlock { Text = "⋮⋮", FontSize = 10, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(7, 0, 2, 0), Foreground = (Brush)res["TextDim"], ToolTip = "Arraste para reorganizar" };
+            var grip = GlyphIcon('\uE76F', 10);
+            grip.Margin = new Thickness(7, 0, 2, 0);
+            grip.Foreground = (Brush)res["TextDim"];
+            grip.ToolTip = "Arraste para reorganizar";
             var bar = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(_buttons, Dock.Right);
             bar.Children.Add(_buttons);

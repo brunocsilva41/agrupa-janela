@@ -1,20 +1,12 @@
-using System.Reflection;
 using AgrupaJanela.Hosting;
 
 namespace AgrupaJanela.Tests.Hosting;
 
 /// <summary>
-/// AppIdentity.Of consulta o processo real via Win32; por isso o parser privado ArgumentsOf
-/// é chamado diretamente por reflexão.
+/// AppIdentity.Of consulta o processo real via Win32; por isso o parser ArgumentsOf (internal) é testado direto.
 /// </summary>
 public class AppIdentityTests
 {
-    private static readonly MethodInfo ArgumentsOfMethod =
-        typeof(AppIdentity).GetMethod("ArgumentsOf", BindingFlags.NonPublic | BindingFlags.Static)
-        ?? throw new InvalidOperationException("AppIdentity.ArgumentsOf não encontrado (renomeado?)");
-
-    private static string? ArgumentsOf(string? commandLine) => (string?)ArgumentsOfMethod.Invoke(null, new object?[] { commandLine });
-
     [Theory]
     [InlineData(@"C:\x\a.exe -k", "-k")]
     [InlineData(@"""C:\x\a.exe"" -k", "-k")]
@@ -24,7 +16,7 @@ public class AppIdentityTests
     [InlineData(@"""C:\x\a.exe""-k", "-k")]                            // sem espaço depois da aspa
     [InlineData(@"C:\x\a.exe ""arquivo com espaço.txt""", @"""arquivo com espaço.txt""")]
     public void ComArgumentos(string commandLine, string expected) =>
-        Assert.Equal(expected, ArgumentsOf(commandLine));
+        Assert.Equal(expected, AppIdentity.ArgumentsOf(commandLine));
 
     [Theory]
     [InlineData(@"C:\x\a.exe")]
@@ -32,7 +24,7 @@ public class AppIdentityTests
     [InlineData(@"""C:\Program Files\x.exe""    ")]
     [InlineData(@"notepad")]
     public void SemArgumentos_Null(string commandLine) =>
-        Assert.Null(ArgumentsOf(commandLine));
+        Assert.Null(AppIdentity.ArgumentsOf(commandLine));
 
     [Theory]
     [InlineData(null)]
@@ -40,19 +32,19 @@ public class AppIdentityTests
     [InlineData("   ")]
     [InlineData("\t \r\n")]
     public void NuloOuSoEspacos_Null(string? commandLine) =>
-        Assert.Null(ArgumentsOf(commandLine));
+        Assert.Null(AppIdentity.ArgumentsOf(commandLine));
 
     [Fact]
     public void AspasNaoFechadas_TudoEhOExecutavel()
     {
         // Sem a aspa de fechamento, a linha inteira é tratada como executável (sem argumentos).
-        Assert.Null(ArgumentsOf(@"""C:\Program Files\x.exe --a b"));
-        Assert.Null(ArgumentsOf(@""""));
+        Assert.Null(AppIdentity.ArgumentsOf(@"""C:\Program Files\x.exe --a b"));
+        Assert.Null(AppIdentity.ArgumentsOf(@""""));
     }
 
     [Fact]
     public void TabComoSeparador_PreservaArgumentos() =>
-        Assert.Equal("-k", ArgumentsOf("C:\\x\\a.exe\t-k"));
+        Assert.Equal("-k", AppIdentity.ArgumentsOf("C:\\x\\a.exe\t-k"));
 
     [Fact]
     public void Record_IgualdadePorValor()

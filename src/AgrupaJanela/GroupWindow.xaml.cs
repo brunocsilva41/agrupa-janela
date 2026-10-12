@@ -29,7 +29,7 @@ public partial class GroupWindow : Window
     private readonly Dictionary<IGroupedWindow, List<TextBlock>> _titles = new();
     private readonly Dictionary<SplitNode, Grid> _splitGrids = new();
     private readonly DispatcherTimer _watch = new() { Interval = TimeSpan.FromSeconds(1) };
-    private readonly DispatcherTimer _statusClear = new() { Interval = TimeSpan.FromSeconds(6) };
+    private readonly DispatcherTimer _statusClear = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly DropOverlay _overlay = new();
 
     private LayoutMode _mode = LayoutMode.Grid;
@@ -70,7 +70,7 @@ public partial class GroupWindow : Window
         Icon = AppIcon.Image;
         SourceInitialized += (_, _) => Win32.UseDarkTitleBar(new WindowInteropHelper(this).Handle);
         _watch.Tick += (_, _) => Watch();
-        _statusClear.Tick += (_, _) => { _statusClear.Stop(); StatusText.Text = ""; };
+        _statusClear.Tick += (_, _) => HideStatus();
         _watch.Start();
         BuildPresetButtons();
         // Janelas acopladas acompanham o grupo: mover, redimensionar, minimizar e ordem Z.
@@ -112,13 +112,13 @@ public partial class GroupWindow : Window
         if (_loading)
         {
             error = "Aguarde: este grupo ainda está reabrindo os apps salvos.";
-            Status(error);
+            StatusError(error);
             return false;
         }
         if (AppController.Instance.OwnerOf(candidate.Handle) is { } owner)
         {
             error = $"\"{candidate.Title}\" já está em \"{owner.GroupName}\".";
-            Status(error);
+            StatusError(error);
             return false;
         }
         IGroupedWindow host;
@@ -126,7 +126,7 @@ public partial class GroupWindow : Window
         catch (Exception ex)
         {
             error = ex.Message;
-            Status("Não foi possível agrupar: " + ex.Message);
+            StatusError("Não foi possível agrupar: " + ex.Message);
             return false;
         }
 
@@ -331,8 +331,8 @@ public partial class GroupWindow : Window
         _loading = false;
         Rebuild();
         if (_active is not null) SetActive(_active, focus: true);
-        Status(opened == placeholders.Count ? $"{opened} app(s) restaurado(s)."
-            : $"{opened} de {placeholders.Count} app(s) restaurado(s); os demais ficaram no lugar com \"Tentar de novo\".");
+        if (opened == placeholders.Count) Status($"{opened} app(s) restaurado(s).");
+        else StatusError($"{opened} de {placeholders.Count} app(s) restaurado(s); os demais ficaram no lugar com \"Tentar de novo\".");
         RaiseChanged(); // grava as janelas novas (HWND, processo) para a próxima reabertura reencontrá-las
     }
 
@@ -480,7 +480,7 @@ public partial class GroupWindow : Window
         var candidate = WindowCatalog.Describe(hwnd);
         IGroupedWindow? replacement = null;
         try { if (candidate is not null) replacement = CreateHost(candidate, resolved); }
-        catch (Exception ex) { Status("Não deu para trocar o modo: " + ex.Message); }
+        catch (Exception ex) { StatusError("Não deu para trocar o modo: " + ex.Message); }
         Mutate(() =>
         {
             if (replacement is not null) _tree.Replace(host, replacement);
@@ -811,12 +811,31 @@ public partial class GroupWindow : Window
 
     private static bool Contains(Int32Rect r, int x, int y) => x >= r.X && x < r.X + r.Width && y >= r.Y && y < r.Y + r.Height;
 
-    private void Status(string text)
+    /// <summary>Mensagem de sucesso/info: some sozinha em 4 s.</summary>
+    private void Status(string text) => ShowStatus(text, error: false);
+
+    /// <summary>Erro: cor Danger, fica até o usuário clicar no ✕.</summary>
+    private void StatusError(string text) => ShowStatus(text, error: true);
+
+    private void ShowStatus(string text, bool error)
     {
         StatusText.Text = text;
+        StatusText.Foreground = (Brush)FindResource(error ? "Danger" : "TextDim");
+        AutomationProperties.SetLiveSetting(StatusText, error ? AutomationLiveSetting.Assertive : AutomationLiveSetting.Polite);
+        StatusClose.Visibility = error ? Visibility.Visible : Visibility.Collapsed;
+        StatusBar.Visibility = Visibility.Visible;
         _statusClear.Stop();
-        _statusClear.Start();
+        if (!error) _statusClear.Start();
     }
+
+    private void HideStatus()
+    {
+        _statusClear.Stop();
+        StatusBar.Visibility = Visibility.Collapsed;
+        StatusText.Text = "";
+    }
+
+    private void StatusClose_Click(object sender, RoutedEventArgs e) => HideStatus();
 
     // ================= Barra do grupo =================
 

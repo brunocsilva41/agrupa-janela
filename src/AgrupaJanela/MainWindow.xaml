@@ -54,7 +54,11 @@
       </ListBox>
     </DockPanel>
 
-    <TextBlock x:Name="StatusText" Grid.Row="2" Foreground="{StaticResource TextDim}" TextWrapping="Wrap" Margin="0,8,0,10"/>
+    <!-- Dica fixa (atualizada pela lista) e linha de mensagem (some em 10 s ou na próxima ação). -->
+    <StackPanel Grid.Row="2" Margin="0,8,0,10">
+      <TextBlock x:Name="HintText" Foreground="{StaticResource TextDim}" TextWrapping="Wrap"/>
+      <TextBlock x:Name="MessageText" Margin="0,4,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
+    </StackPanel>
 
     <!-- Grupos -->
     <Grid Grid.Row="3">

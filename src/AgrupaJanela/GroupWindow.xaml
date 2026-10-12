@@ -62,9 +62,20 @@
               <TextBlock Text="Igualar" Margin="6,0,0,0"/>
             </StackPanel>
           </Button>
-
-          <TextBlock x:Name="StatusText" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Linha de status: só aparece com mensagem. Sucesso some sozinho; erro fica até o ✕. -->
+    <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Height="24" Background="{StaticResource Surface}"
+            BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="10,0,4,0" Visibility="Collapsed">
+      <DockPanel>
+        <Button x:Name="StatusClose" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Padding="6,0,6,0" Focusable="False"
+                Visibility="Collapsed" ToolTip="Fechar o aviso" AutomationProperties.Name="Fechar o aviso" Click="StatusClose_Click">
+          <TextBlock Style="{StaticResource IconText}" FontSize="10" Text="&#xE8BB;"/>
+        </Button>
+        <TextBlock x:Name="StatusText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   Foreground="{StaticResource TextDim}"/>
       </DockPanel>
     </Border>
 

@@ -10,6 +10,8 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Automation;
+using System.Windows.Media;
 
 namespace AgrupaJanela;
 
@@ -25,15 +27,24 @@ public partial class MainWindow : Window
         Logo.Source = AppIcon.Image;
         SourceInitialized += (_, _) => Win32.UseDarkTitleBar(new WindowInteropHelper(this).Handle);
         Activated += (_, _) => RefreshWindows();
+        _messageClear.Tick += (_, _) => ClearMessage();
+        // Qualquer ação do usuário na janela apaga a mensagem anterior (a ação nova, se houver, põe a sua).
+        PreviewMouseDown += (_, _) => ClearMessage();
+        PreviewKeyDown += (_, _) => ClearMessage();
         SavedList.ItemsSource = _app.Store.Groups;
         HotkeysList.ItemsSource = _app.Hotkeys.Registered.Select(h => new { h.Shortcut, h.Description }).ToList();
         _app.GroupsChanged += RefreshGroups;
-        _app.GroupsChanged += RefreshWindows; // janelas devolvidas/agrupadas mudam a lista
+        // Janelas devolvidas/agrupadas mudam a lista. Escondida, ela não é tocada: ao mostrar, é atualizada (IsVisibleChanged).
+        _app.GroupsChanged += () => { if (IsVisible) RefreshWindows(); };
         RefreshGroups();
         // Enquanto visível, acompanha janelas que abrem/fecham (atualização no lugar, barata); escondida, não gasta nada.
         var listTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         listTimer.Tick += (_, _) => RefreshWindows();
-        IsVisibleChanged += (_, _) => { if (IsVisible) { RefreshWindows(); listTimer.Start(); } else listTimer.Stop(); };
+        IsVisibleChanged += (_, _) =>
+        {
+            if (IsVisible) { RefreshWindows(); listTimer.Start(); }
+            else listTimer.Stop();
+        };
         StartupCheck.IsChecked = AppSettings.StartWithWindows;
         ReopenCheck.IsChecked = _app.Settings.ReopenSavedOnStart;
         SysMenuCheck.IsChecked = _app.Settings.SystemMenuEnabled;
@@ -49,7 +60,7 @@ public partial class MainWindow : Window
     private void Prefs_Click(object sender, RoutedEventArgs e)
     {
         try { AppSettings.StartWithWindows = StartupCheck.IsChecked == true; }
-        catch (Exception ex) { StatusText.Text = "Não foi possível alterar o início com o Windows: " + ex.Message; }
+        catch (Exception ex) { Message("Não foi possível alterar o início com o Windows: " + ex.Message, error: true); }
         _app.Settings.ReopenSavedOnStart = ReopenCheck.IsChecked == true;
         _app.Settings.SystemMenuEnabled = SysMenuCheck.IsChecked == true;
         _app.Settings.HideMainAfterGrouping = HideMainCheck.IsChecked == true;
@@ -59,6 +70,27 @@ public partial class MainWindow : Window
     }
 
     private readonly ObservableCollection<WindowCandidate> _windows = new();
+    private readonly System.Windows.Threading.DispatcherTimer _messageClear = new() { Interval = TimeSpan.FromSeconds(10) };
+
+    /// <summary>
+    /// Linha de mensagem (ações e erros). Não é apagada pelo timer da lista: some em 10 s ou na próxima ação do usuário.
+    /// </summary>
+    private void Message(string text, bool error = false)
+    {
+        MessageText.Text = text;
+        MessageText.Foreground = (Brush)Application.Current.Resources[error ? "Danger" : "Text"];
+        AutomationProperties.SetLiveSetting(MessageText, error ? AutomationLiveSetting.Assertive : AutomationLiveSetting.Polite);
+        MessageText.Visibility = Visibility.Visible;
+        _messageClear.Stop();
+        _messageClear.Start();
+    }
+
+    private void ClearMessage()
+    {
+        _messageClear.Stop();
+        MessageText.Visibility = Visibility.Collapsed;
+        MessageText.Text = "";
+    }
 
     /// <summary>
     /// Atualiza a lista NO LUGAR: entram as novas, saem as que fecharam, as demais continuam sendo os mesmos itens.
@@ -68,7 +100,7 @@ public partial class MainWindow : Window
     {
         WindowsList.ItemsSource ??= _windows;
         var fresh = WindowCatalog.Enumerate();
-        StatusText.Text = $"{fresh.Count(c => c.CanEmbed)} janela(s) disponível(is). Ctrl+clique seleciona várias; duplo clique agrupa na hora.";
+        HintText.Text = $"{fresh.Count(c => c.CanEmbed)} janela(s) disponível(is). Ctrl+clique seleciona várias; duplo clique agrupa na hora.";
 
         for (var i = 0; i < fresh.Count; i++)
         {
@@ -105,14 +137,14 @@ public partial class MainWindow : Window
         // Na ordem da lista (não na ordem dos cliques): o grupo sai previsível.
         var picked = WindowsList.SelectedItems.Cast<WindowCandidate>().ToHashSet();
         var selected = _windows.Where(picked.Contains).ToList();
-        if (selected.Count == 0) StatusText.Text = "Selecione ao menos uma janela na lista.";
+        if (selected.Count == 0) Message("Selecione ao menos uma janela na lista.");
         return selected;
     }
 
     private void Report(List<string> errors)
     {
         RefreshWindows();
-        if (errors.Count > 0) StatusText.Text = "Algumas janelas não foram agrupadas:\n• " + string.Join("\n• ", errors);
+        if (errors.Count > 0) Message("Algumas janelas não foram agrupadas:\n• " + string.Join("\n• ", errors), error: true);
         // Agrupou tudo: sai da frente e fica na bandeja (o grupo já está aberto).
         else if (_app.Settings.HideMainAfterGrouping) { Hide(); _app.MainHidden(); }
     }

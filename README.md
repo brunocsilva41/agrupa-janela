@@ -45,7 +45,7 @@ Baixe a versão mais recente em [Releases](https://github.com/brunocsilva41/agru
 
 1. Execute `SplitDeck-Setup-{versão}.exe`.
 2. A instalação é só para o seu usuário e **não pede administrador**. O app vai para `%LOCALAPPDATA%\Programs\SplitDeck`.
-3. Se o .NET 8 Desktop Runtime não estiver instalado, o instalador oferece baixar o instalador oficial da Microsoft.
+3. Se o .NET 10 Desktop Runtime não estiver instalado, o instalador oferece baixar o instalador oficial da Microsoft.
 
 ### Portátil (ZIP)
 
@@ -213,6 +213,6 @@ Contribuições são bem-vindas, por Pull Request revisado pelo mantenedor. Leia
 
 Features: tree layout with draggable splitters, 5 presets, equalize, maximize pane, drag-to-rearrange, tabs mode, global hotkeys (`Ctrl+Alt+G/M/←/→/Enter`, falling back to `Ctrl+Alt+Shift`), a "Group…" item in classic apps' title-bar menu, Shift+drag a window onto a group or onto another window, saved groups, tray icon, start with Windows. On close or on errors, windows are handed back to the desktop.
 
-Install: per-user installer (no admin) into `%LOCALAPPDATA%\Programs\SplitDeck`, or portable ZIP. Requires the .NET 10 Desktop Runtime x64. Binaries are not code-signed; verify them with `SHA256SUMS.txt` from the release. No telemetry; the only network access is the update check against GitHub Releases (being implemented, can be turned off). Limitations: elevated (admin) windows can't be grouped by a non-elevated instance; apps with custom title bars don't show the title-bar menu item; force-killing the process may close embedded windows.
+Install: per-user installer (no admin) into `%LOCALAPPDATA%\Programs\SplitDeck`, or portable ZIP. Requires the .NET 10 Desktop Runtime x64. Binaries are not code-signed; verify them with `SHA256SUMS.txt` from the release. No telemetry; the only network access is the update check against GitHub Releases (can be turned off). Limitations: elevated (admin) windows can't be grouped by a non-elevated instance; apps with custom title bars don't show the title-bar menu item; force-killing the process may close embedded windows.
 
 Build: `dotnet build AgrupaJanela.sln`, test: `dotnet test tests/AgrupaJanela.Tests`. License: MIT. The UI and docs are in Brazilian Portuguese.

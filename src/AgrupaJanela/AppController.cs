@@ -63,7 +63,7 @@ public sealed class AppController : IDisposable
         }
         // Encerramento forçado anterior pode ter deixado janelas acopladas escondidas: mostra de volta.
         var recovered = DockRecovery.RecoverOrphans();
-        if (recovered > 0) _tray.ShowMessage("Janelas recuperadas", $"{recovered} janela(s) que estavam agrupadas foram devolvidas à área de trabalho.");
+        if (recovered > 0) _tray.ShowMessage("Janelas recuperadas", Texto.Plural(recovered, "janela que estava agrupada foi devolvida à área de trabalho.", "janelas que estavam agrupadas foram devolvidas à área de trabalho."));
         if (!startInTray) ShowMain();
         else TrimMemory();
         if (Settings.ReopenSavedOnStart)
@@ -209,14 +209,28 @@ public sealed class AppController : IDisposable
         TrimMemory();
     }
 
-    /// <summary>Na bandeja o app só espera eventos: devolve ao Windows a memória que não está em uso.</summary>
-    private static void TrimMemory() =>
-        Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, () =>
+    /// <summary>
+    /// Na bandeja o app só espera eventos: devolve ao Windows a memória que não está em uso.
+    /// Adiado: logo depois de iniciar o app ainda está carregando, então um único timer (reiniciado a cada pedido) faz a limpeza.
+    /// </summary>
+    private void TrimMemory()
+    {
+        if (_trimTimer is null)
         {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            Win32.TrimWorkingSet();
-        });
+            _trimTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            _trimTimer.Tick += (_, _) =>
+            {
+                _trimTimer.Stop();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                Win32.TrimWorkingSet();
+            };
+        }
+        _trimTimer.Stop();
+        _trimTimer.Start();
+    }
+
+    private System.Windows.Threading.DispatcherTimer? _trimTimer;
 
     public GroupWindow CreateGroup()
     {
@@ -278,13 +292,14 @@ public sealed class AppController : IDisposable
         LastActive = group;
         group.Activated += (_, _) => LastActive = group;
         group.NewGroupRequested += g => NewEmptyGroup(g);
-        group.Changed += (g, persist) =>
+        group.Changed += g =>
         {
+            // Grupo salvo: grava 1 s depois da última mudança (cada tecla no nome não grava na hora).
+            // Fechando, grava já: as pastas dos terminais só se leem enquanto os apps ainda estão no grupo.
             if (g.IsSaved)
             {
-                var snapshot = g.ToSaved();
-                if (!persist && Store.Groups.FirstOrDefault(x => x.Id == g.Id) is { } previous) snapshot.Layout = previous.Layout;
-                Store.Save(snapshot);
+                if (g.IsClosing) { TakePending(g); SaveNow(g); }
+                else QueueSave(g);
             }
             GroupsChanged?.Invoke();
         };
@@ -301,6 +316,43 @@ public sealed class AppController : IDisposable
             GroupsChanged?.Invoke();
         };
         GroupsChanged?.Invoke();
+    }
+
+    // ---------- Gravação agrupada ----------
+
+    /// <summary>Um timer por grupo com gravação pendente; cada mudança reinicia o atraso de 1 s.</summary>
+    private readonly Dictionary<GroupWindow, System.Windows.Threading.DispatcherTimer> _pendingSaves = new();
+
+    private void QueueSave(GroupWindow group)
+    {
+        if (!_pendingSaves.TryGetValue(group, out var timer))
+        {
+            timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            timer.Tick += (_, _) => { if (TakePending(group)) SaveNow(group); };
+            _pendingSaves[group] = timer;
+        }
+        timer.Stop();
+        timer.Start();
+    }
+
+    /// <summary>Tira a gravação pendente do grupo (cancela o timer). Retorna true se havia uma esperando.</summary>
+    private bool TakePending(GroupWindow group)
+    {
+        if (!_pendingSaves.Remove(group, out var timer)) return false;
+        timer.Stop();
+        return true;
+    }
+
+    private void SaveNow(GroupWindow group)
+    {
+        if (group.IsSaved) Store.Save(group.ToSaved());
+    }
+
+    /// <summary>Grava já as mudanças que ainda esperam o atraso. Fechar cada grupo já grava; isto é a rede de segurança do encerramento.</summary>
+    public void FlushPending()
+    {
+        foreach (var group in _pendingSaves.Keys.ToList())
+            if (TakePending(group)) SaveNow(group);
     }
 
     // ---------- Atalhos globais ----------
@@ -450,18 +502,25 @@ public sealed class AppController : IDisposable
 
     public void Exit()
     {
-        var open = Groups.Where(g => g.Count > 0).ToList();
+        var open = Groups.Where(g => g.HasWindows).ToList();
         var closeApps = false;
         if (open.Count > 0)
         {
-            var answer = ChoiceDialog.AskCloseGroups(_main, open.Count == 1 ? $"\"{open[0].GroupName}\" e sair" : $"os {open.Count} grupos e sair");
+            var answer = ChoiceDialog.AskCloseGroups(_main, open.Count == 1 ? $"Fechar o grupo \"{open[0].GroupName}\" e sair?" : $"Fechar os {open.Count} grupos e sair?");
             if (answer is null) return;
             closeApps = answer.Value;
         }
+        // Um Quit/Sair que chegou com o diálogo aberto já encerrou o app.
+        if (_exiting) return;
         _exiting = true;
-        foreach (var group in Groups.ToList()) group.CloseWithDecision(closeApps);
-        _main?.Close();
-        Dispose();
+        try
+        {
+            // Um grupo com erro não pode impedir os demais, o Dispose nem o encerramento.
+            foreach (var group in Groups.ToList())
+                try { group.CloseWithDecision(closeApps); } catch { }
+            try { _main?.Close(); } catch { }
+        }
+        finally { Dispose(); }
         Application.Current.Shutdown();
     }
 
@@ -470,12 +529,19 @@ public sealed class AppController : IDisposable
     {
         if (_exiting) return;
         _exiting = true;
-        foreach (var group in Groups.ToList()) group.CloseWithDecision(false);
-        Dispose();
+        try
+        {
+            foreach (var group in Groups.ToList())
+                try { group.CloseWithDecision(false); } catch { }
+        }
+        finally { Dispose(); }
     }
 
     public void Dispose()
     {
+        // Antes de soltar as janelas: o que ainda esperava o atraso de 1 s é gravado (as pastas dos terminais
+        // só se leem com os apps ainda no grupo). Uma falha aqui nunca impede devolver as janelas.
+        try { FlushPending(); } catch { }
         HostRegistry.ReleaseAll();
         _systemMenu?.Dispose();
         _systemMenu = null;

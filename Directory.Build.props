@@ -1,12 +1,13 @@
 <Project>
   <!-- Fonte única de versão e identidade. O CI sobrescreve a versão com -p:Version=X.Y.Z (vinda da tag vX.Y.Z). -->
   <PropertyGroup>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Authors>Bruno Silva</Authors>
     <Company>Bruno Silva</Company>
     <Product>SplitDeck</Product>
     <Copyright>© 2026 Bruno Silva</Copyright>
     <RepositoryUrl>https://github.com/brunocsilva41/agrupa-janela</RepositoryUrl>
     <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 </Project>

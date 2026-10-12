@@ -62,7 +62,7 @@ public sealed class EmbeddedWindowHost : HwndHost, IGroupedWindow
     /// <summary>Incorpora a janela imediatamente. Lança exceção com mensagem legível se não for possível.</summary>
     public static EmbeddedWindowHost Create(WindowCandidate candidate, nint ownerWindow)
     {
-        var fresh = WindowCatalog.Describe(candidate.Handle)
+        var fresh = WindowCatalog.DescribeAnyDesktop(candidate.Handle)
             ?? throw new InvalidOperationException($"A janela \"{candidate.Title}\" não existe mais ou não pode ser agrupada.");
         if (fresh.BlockReason is { } reason)
             throw new InvalidOperationException($"\"{fresh.Title}\": {reason}.");

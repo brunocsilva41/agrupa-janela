@@ -6,6 +6,17 @@ namespace AgrupaJanela.Setup;
 
 internal static class NativeMethods
 {
+    // ---- Busca de DLL restrita ao System32 (chamado antes de qualquer outro P/Invoke) ----
+    private const uint LOAD_LIBRARY_SEARCH_SYSTEM32 = 0x800;
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern bool SetDefaultDllDirectories(uint directoryFlags);
+
+    public static void RestrictDllSearchToSystem32()
+    {
+        // Sem suporte (Windows sem KB2533623): segue como antes, sem a restrição.
+        try { SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32); }
+        catch (Exception) { }
+    }
+
     // ---- Barra de título escura (igual ao Win32.UseDarkTitleBar do app) ----
     private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20, DWMWA_USE_IMMERSIVE_DARK_MODE_OLD = 19;
     [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

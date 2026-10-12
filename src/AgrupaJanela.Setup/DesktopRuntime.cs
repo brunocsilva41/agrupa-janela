@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32;
@@ -122,7 +123,7 @@ internal static class DesktopRuntime
         string subject;
         using (var signer = new X509Certificate2(X509Certificate.CreateFromSignedFile(file)))
             subject = signer.Subject;
-        if (subject.IndexOf("O=Microsoft Corporation", StringComparison.Ordinal) < 0)
+        if (!IsMicrosoftSigner(subject))
             throw new InvalidOperationException($"O arquivo baixado não é assinado pela Microsoft Corporation (assinante: {subject}). Ele não foi executado.");
         Log.Info($"Assinatura válida; assinante: {subject}");
 
@@ -131,6 +132,60 @@ internal static class DesktopRuntime
         await Task.Run(() => process.WaitForExit()).ConfigureAwait(false);
         Log.Info($"Instalador do runtime terminou com código {process.ExitCode}.");
         return process.ExitCode;
+    }
+
+    /// <summary>
+    /// Sim só se o campo O= do Subject for exatamente "Microsoft Corporation" e for o único O=. O Subject é
+    /// separado por vírgulas respeitando aspas e barras de escape. Um IndexOf aceitaria, por exemplo,
+    /// "O=Microsoft Corporation Falsa" ou um O= dentro de outro valor.
+    /// </summary>
+    internal static bool IsMicrosoftSigner(string subject)
+    {
+        var organizations = new List<string>();
+        foreach (var rdn in SplitRdns(subject))
+        {
+            var eq = rdn.IndexOf('=');
+            if (eq <= 0 || !string.Equals(rdn.Substring(0, eq).Trim(), "O", StringComparison.OrdinalIgnoreCase)) continue;
+            organizations.Add(ValueOf(rdn.Substring(eq + 1).Trim()));
+        }
+        return organizations.Count == 1 && organizations[0] == "Microsoft Corporation";
+    }
+
+    private static IEnumerable<string> SplitRdns(string subject)
+    {
+        var current = new StringBuilder();
+        var quoted = false;
+        for (var i = 0; i < subject.Length; i++)
+        {
+            var c = subject[i];
+            if (c == '\\' && i + 1 < subject.Length)
+            {
+                current.Append(c).Append(subject[++i]); // escape: o caractere seguinte não separa nada
+                continue;
+            }
+            if (c == '"') quoted = !quoted;
+            if (c == ',' && !quoted)
+            {
+                yield return current.ToString();
+                current.Clear();
+                continue;
+            }
+            current.Append(c);
+        }
+        yield return current.ToString();
+    }
+
+    /// <summary>Tira as aspas externas e os escapes (\x -> x) de um valor do Subject.</summary>
+    private static string ValueOf(string raw)
+    {
+        var text = raw.Length >= 2 && raw[0] == '"' && raw[raw.Length - 1] == '"' ? raw.Substring(1, raw.Length - 2) : raw;
+        var sb = new StringBuilder(text.Length);
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text[i] == '\\' && i + 1 < text.Length) i++;
+            sb.Append(text[i]);
+        }
+        return sb.ToString();
     }
 
     private static int VerifyAuthenticode(string file, IntPtr handle)

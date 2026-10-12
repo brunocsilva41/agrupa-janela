@@ -7,6 +7,12 @@ namespace AgrupaJanela.Setup;
 
 public partial class App : Application
 {
+    public App()
+    {
+        // Primeira coisa a fazer: nenhum P/Invoke carrega DLL fora do System32 (ver AssemblySecurity.cs).
+        NativeMethods.RestrictDllSearchToSystem32();
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);

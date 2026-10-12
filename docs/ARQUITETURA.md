@@ -46,10 +46,13 @@ flowchart TD
 | `IGroupedWindow` | `Hosting/IGroupedWindow.cs` | Contrato comum de uma janela agrupada, em qualquer modo: `Target`, `Identity`, `Mode`, `View`, `Release()`. |
 | `EmbeddedWindowHost` | `Hosting/EmbeddedWindowHost.cs` | Modo Incorporada (`HwndHost` + HWND "wrapper"). Também contém `HostRegistry`. |
 | `DockedWindowHost` | `Hosting/DockedWindowHost.cs` | Modo Acoplada (elemento WPF que é só o "lugar" da janela). Também contém `DockRecovery`. |
-| `DockNative`, `DockWatcher` | `Hosting/DockSync.cs` | Posicionamento, ordem Z, botão da barra de tarefas e ganchos WinEvent por processo para as acopladas. |
+| `DockNative`, `DockWatcher` | `Hosting/DockSync.cs` | Posicionamento, ordem Z (`PlaceAbove`) e ganchos WinEvent por processo para as acopladas. |
 | `EmbedPolicy` | `Hosting/EmbedPolicy.cs` | Decide o modo de cada janela. |
 | `WindowCatalog` | `Hosting/WindowCatalog.cs` | Lista janelas agrupáveis e explica por que outras não podem ser agrupadas (`BlockReason`). |
-| `AppIdentity`, `AppLauncher` | `Hosting/` | O que é salvo de cada app (executável, argumentos, título, último HWND e PID) e como reencontrá-lo ou relançá-lo. |
+| `AppIdentity`, `AppLauncher` | `Hosting/` | O que é salvo de cada app (executável, argumentos, título, último HWND e PID, pasta do terminal) e como reencontrá-lo ou relançá-lo. |
+| `AppVersionPath` | `Hosting/AppVersionPath.cs` | Reconhece o mesmo app entre versões (pacotes da Loja, apps Squirrel) e acha o executável atual para abrir. |
+| `TerminalDirectory` | `Hosting/TerminalDirectory.cs` | Pasta atual de um terminal (console clássico ou janela do Windows Terminal, via `PseudoConsoleWindow`). |
+| `PlaceholderHost` | `Hosting/PlaceholderHost.cs` | Painel de um app salvo que não está aberto (abrindo, não abriu, fechado), com Tentar de novo/Remover. |
 | `HotkeyService` | `Shell/HotkeyService.cs` | Atalhos globais numa janela só de mensagens. |
 | `SystemMenuIntegration` | `Shell/SystemMenuIntegration.cs` | Itens "Agrupar…" no menu de sistema de outros apps. |
 | `WindowDragWatcher` | `Shell/WindowDragWatcher.cs` | Detecta arraste de janelas de outros apps. |
@@ -70,14 +73,14 @@ flowchart TD
 
 **Incorporada** (`EmbeddedWindowHost.Attach`): guarda estilo, estilo estendido e posição (`WINDOWPLACEMENT`); restaura a janela se estiver minimizada/maximizada; troca o estilo para `WS_CHILD` (sem moldura) **antes** do `SetParent`, como pede a documentação; faz `SetParent` para o wrapper e, se o Windows recusar, restaura o estilo e informa o erro.
 
-**Acoplada** (`DockedWindowHost`): guarda a posição, passa a vigiar o processo (`DockWatcher.Track`), registra a janela em `DockRecovery` e a posiciona sobre o painel sempre que o layout muda (`Sync`), escondendo-a quando o painel sai da tela (aba inativa, outro painel maximizado, grupo minimizado). O botão da janela na barra de tarefas é retirado (`ITaskbarList`).
+**Acoplada** (`DockedWindowHost`): guarda a posição, passa a vigiar o processo (`DockWatcher.Track`), registra a janela em `DockRecovery` e a posiciona sobre o painel sempre que o layout muda (`Sync`), escondendo-a quando o painel sai da tela (aba inativa, outro painel maximizado, grupo minimizado). O grupo passa a ser o dono da janela (`Win32.SetOwner`; ver *Dono (owner) no modo Acoplada* abaixo). `DockNative.SetTaskbarButton` (`ITaskbarList`) existe, mas não tem chamadas: o código não retira o botão da barra de tarefas.
 
 ### Devolver
 
 Todo caminho de saída chama `IGroupedWindow.Release()`, que é idempotente:
 
 - **Incorporada:** `SetParent(0)`, restaura estilo, estilo estendido e posição originais (minimizada volta como normal) e mostra a janela.
-- **Acoplada:** para de vigiar, sai de `DockRecovery`, restaura a posição (ou mantém onde está, se foi arrastada para fora), mostra a janela e devolve o botão da barra de tarefas.
+- **Acoplada:** para de vigiar, sai de `DockRecovery`, restaura a posição (ou mantém onde está, se foi arrastada para fora), tira o dono (`SetOwner(0)`) e esconde e mostra a janela sem ativá-la, para o shell recriar o botão na barra de tarefas.
 
 Quem dispara:
 
@@ -86,13 +89,16 @@ Quem dispara:
 - **Sair / desligar o Windows:** `AppController.Exit` pergunta uma vez para todos os grupos; `ExitSilently` (fim de sessão do Windows ou evento "Quit") devolve sem perguntar.
 - **Erro inesperado:** `App` chama `HostRegistry.ReleaseAll()` em `DispatcherUnhandledException`, `UnhandledException`, `ProcessExit` e `OnExit`.
 - **Janela fechada pelo próprio app:** o timer de 1 s do grupo (`Watch`) tira da árvore os hosts que não estão mais ligados e atualiza os títulos.
-- **Encerramento forçado:** não há código que rode. Janelas acopladas continuam existindo (sem dono entre processos), mas podem ter ficado escondidas; na próxima abertura, `DockRecovery.RecoverOrphans` mostra de novo as que ainda pertencem ao mesmo processo. Janelas incorporadas podem ser destruídas junto com o grupo pelo Windows: é a limitação conhecida do modo.
+- **Encerramento forçado:** não há código que rode. No modo Acoplada, a janela do app sobrevive ao encerramento forçado do SplitDeck (continua existindo e visível; medido por outra equipe). Se o grupo estava minimizado, ela também sobrevive, mas fica escondida até o SplitDeck abrir de novo: na próxima abertura, `DockRecovery.RecoverOrphans` a mostra de novo, se ela ainda pertencer ao mesmo processo. Janelas incorporadas podem ser destruídas junto com o grupo pelo Windows: é a limitação conhecida do modo.
 
 ### Salvar e reabrir
 
-1. **☆ Salvar** liga `IsSaved`; a partir daí, cada mudança do usuário no grupo (`Changed` com `persist: true`) regrava o grupo em `groups.json` via `GroupStore.Save` (grava em `.tmp` e move por cima, para não corromper o arquivo). Mudanças que não vêm do usuário (app fechado por fora, fechamento do grupo) usam `persist: false` e preservam o layout salvo, para não "esquecer" apps.
+1. **☆ Salvar** liga `IsSaved`. A partir daí, cada `GroupWindow.Changed` (`Action<GroupWindow>`) regrava o grupo em `groups.json` via `GroupStore.Save` (grava em `.tmp` e move por cima, para não corromper o arquivo). Um grupo salvo mantém todos os seus apps: os que não abriram ou foram fechados ficam no layout como painéis de espera (`PlaceholderHost`, com "Tentar de novo" e "Remover do grupo"), e o layout salvo não perde nenhum app.
 2. `SavedGroup` guarda nome, modo abas, `NodeDto` do layout (com um `AppIdentity` por folha), posição, tamanho e se estava maximizado.
-3. **Reabrir** (`GroupWindow.LoadAsync`), para cada app, em ordem: `AppLauncher.ResolveAsync` usa a mesma janela se o HWND ainda existe **e** é do mesmo processo; senão relança o executável com os mesmos argumentos e espera até 15 s por uma janela nova (primeiro do processo lançado, depois do mesmo executável, para apps que repassam para outra instância). Folhas sem app resolvido são descartadas da árvore montada, e o grupo informa quantos apps voltaram.
+3. **Reabrir** (`GroupWindow.LoadAsync`): antes de abrir qualquer app, cada folha vira um `PlaceholderHost` e a árvore é montada com eles (`LayoutTree.Load` só descarta folha sem host, e aqui toda folha tem um). Depois, um app por vez, `AppLauncher.ResolveAsync`:
+   - reaproveita **só a mesma janela**: mesmo HWND, mesmo processo e mesmo app (`AppVersionPath.SameApp`, que ignora a pasta da versão). Se ela estiver minimizada, escondida (bandeja) ou em outra área de trabalho virtual, é trazida de volta sem roubar o foco;
+   - senão, abre a versão atual do executável (`AppVersionPath.LaunchTargets`: atalho oficial de app da Loja, versão mais nova de app Squirrel, ou o caminho salvo) com os mesmos argumentos, na pasta do terminal salva (`AppIdentity.WorkingDirectory`, lida por `TerminalDirectory.Of`), e espera até 15 s por uma janela **nova** (primeiro do processo lançado, depois do mesmo app).
+   Quem não abre fica como painel de espera com o motivo (`AppLauncher.WhyNot`) e o grupo informa quantos apps voltaram.
 4. Se o arquivo estiver corrompido, `GroupStore` guarda uma cópia `groups.json.bak` e começa vazio.
 
 ### Atualização
@@ -121,9 +127,9 @@ A janela incorporada não é colocada diretamente no `HwndHost`. `EmbeddedWindow
 
 Como o WPF não desenha por cima de HWNDs filhos (problema de *airspace*), o destaque de soltura é uma janela separada (`DropOverlay`), transparente e topmost.
 
-### Por que o modo Acoplada não usa dono (owner) entre processos
+### Dono (owner) no modo Acoplada
 
-Definir o grupo como *owner* da janela acoplada manteria a ordem Z de graça, mas liga o destino das duas janelas: se o processo do SplitDeck morrer, o Windows destrói as janelas que ele possui. Por isso a janela acoplada continua top-level e sem dono, e a ordem Z é mantida à mão (`DockNative.PlaceAbove`, `GroupWindow.ArrangeUnder`): ao ativar o grupo, as acopladas sobem logo acima dele; ao ativar uma acoplada, o grupo desce logo abaixo dela. O custo é mais código; o ganho é que um encerramento forçado não fecha esses apps.
+Ao acoplar, `DockedWindowHost` define o grupo como dono da janela do app (`Win32.SetOwner(Target, _groupHwnd)`); ao devolver ou recuperar, o dono volta a zero (`SetOwner(…, 0)`). A ordem Z é ajustada com `DockNative.PlaceAbove`: quando o grupo ativa, as acopladas ficam logo acima dele; quando uma acoplada ativa, o grupo desce logo abaixo dela (`GroupWindow.ArrangeUnder`). O comportamento medido de encerramento forçado está em *Devolver*, acima.
 
 Outros cuidados do modo:
 
@@ -145,8 +151,8 @@ Ganchos *in-context* (os ganchos globais de `SetWindowsHookEx`, exceto os *low-l
 Quando o app não tem certeza, ele não age:
 
 - não agrupa janelas de apps travados nem de processos elevados (se ele próprio não for elevado);
-- `AppLauncher` só relança caminhos absolutos terminados em `.exe` que existem (apps da Store em `WindowsApps` são abertos pelo alias via shell); nada resolvido pelo `PATH`;
-- reaproveitar uma janela salva ou recuperar uma órfã exige o mesmo HWND **e** o mesmo PID, porque o Windows reutiliza handles;
+- `AppLauncher` só relança caminhos absolutos terminados em `.exe` que existem (apps da Store são abertos pelos atalhos oficiais em `%LOCALAPPDATA%\Microsoft\WindowsApps`, via shell); nada resolvido pelo `PATH`;
+- reaproveitar uma janela salva exige o mesmo HWND, o mesmo PID e o mesmo app, porque o Windows reutiliza handles; recuperar uma órfã exige o mesmo PID, o mesmo horário de início do processo e o mesmo executável;
 - nunca pega "uma janela qualquer do mesmo programa" ao reabrir um grupo: só janelas novas, surgidas depois do lançamento;
 - em erro, devolve as janelas (`HostRegistry.ReleaseAll`) antes de mostrar a mensagem;
 - falhas ao gravar preferências, recuperação ou menus não derrubam o app.

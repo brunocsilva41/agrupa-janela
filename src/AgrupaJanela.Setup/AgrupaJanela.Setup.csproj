@@ -44,6 +44,11 @@
     <Page Include="..\AgrupaJanela\Themes\Dark.xaml" Link="Themes\Dark.xaml" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Testes do instalador (tests/AgrupaJanela.Setup.Tests) acessam internals. -->
+    <InternalsVisibleTo Include="AgrupaJanela.Setup.Tests" />
+  </ItemGroup>
+
   <ItemGroup Condition="Exists('$(SetupPayload)')">
     <EmbeddedResource Include="$(SetupPayload)" LogicalName="SplitDeck.Payload.zip" />
   </ItemGroup>

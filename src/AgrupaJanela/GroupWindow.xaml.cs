@@ -29,14 +29,17 @@ public partial class GroupWindow : Window
     private readonly Dictionary<IGroupedWindow, List<TextBlock>> _titles = new();
     private readonly Dictionary<SplitNode, Grid> _splitGrids = new();
     private readonly DispatcherTimer _watch = new() { Interval = TimeSpan.FromSeconds(1) };
-    private readonly DispatcherTimer _statusClear = new() { Interval = TimeSpan.FromSeconds(6) };
+    private readonly DispatcherTimer _statusClear = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly DropOverlay _overlay = new();
+    private readonly List<(Preset Preset, string Tip)> _layoutChoices = new();
+    /// <summary>Tamanho mínimo de um painel da grade (DIP), para não ficar espremido demais.</summary>
+    private const double PaneMinSize = 120;
 
     private LayoutMode _mode = LayoutMode.Grid;
     private IGroupedWindow? _active;
     private IGroupedWindow? _maximized;
     private bool _syncingSave;
-    private bool _ready, _loading, _closing, _closed, _closeDecided, _closeApps;
+    private bool _ready, _loading, _closing, _closed, _closeDecided, _closeApps, _closeStarted;
 
     // Arraste de painel pelo cabeçalho
     private IGroupedWindow? _dragSource;
@@ -47,14 +50,18 @@ public partial class GroupWindow : Window
     public Guid Id { get; }
     public string GroupName => string.IsNullOrWhiteSpace(NameBox.Text) ? "Grupo" : NameBox.Text.Trim();
     public bool IsSaved { get; private set; }
+    /// <summary>Fechamento começou: os apps ainda estão no grupo, então é a última hora de ler o estado deles.</summary>
+    public bool IsClosing => _closeStarted;
     public int Count => _tree.Leaves().Count();
+    /// <summary>Há janelas reais no grupo (painéis de apps que não abriram não contam).</summary>
+    public bool HasWindows => Hosts.Any(h => h is not PlaceholderHost);
     private List<IGroupedWindow> Hosts => _tree.Leaves().Select(l => l.Host).ToList();
 
     /// <summary>
-    /// Algo mudou. persist=true: mudança feita pelo usuário (regrava o layout salvo).
-    /// persist=false: só estado da janela (app fechado por fora, fechamento, reabertura) — o layout salvo é preservado.
+    /// Algo mudou (layout, nome, modo, janelas). Num grupo salvo, o layout atual é sempre o salvo: apps que não abriram
+    /// ou foram fechados continuam nele como painéis de espera (<see cref="PlaceholderHost"/>).
     /// </summary>
-    public event Action<GroupWindow, bool>? Changed;
+    public event Action<GroupWindow>? Changed;
     /// <summary>O usuário pediu um grupo novo pelo botão da barra.</summary>
     public event Action<GroupWindow>? NewGroupRequested;
     /// <summary>O usuário ligou/desligou "Salvar".</summary>
@@ -68,12 +75,13 @@ public partial class GroupWindow : Window
         Icon = AppIcon.Image;
         SourceInitialized += (_, _) => Win32.UseDarkTitleBar(new WindowInteropHelper(this).Handle);
         _watch.Tick += (_, _) => Watch();
-        _statusClear.Tick += (_, _) => { _statusClear.Stop(); StatusText.Text = ""; };
+        _statusClear.Tick += (_, _) => HideStatus();
         _watch.Start();
         BuildPresetButtons();
+        ApplyBarWidth();
         // Janelas acopladas acompanham o grupo: mover, redimensionar, minimizar e ordem Z.
         LocationChanged += (_, _) => SyncDocked(force: true);
-        SizeChanged += (_, _) => SyncDocked(force: true);
+        SizeChanged += (_, _) => { ApplyBarWidth(); SyncDocked(force: true); };
         StateChanged += (_, _) => SyncDocked(force: true);
         Activated += (_, _) => { foreach (var d in Docked) d.RaiseAboveGroup(); };
         AppController.Instance.DockWatcher.Destroyed += OnDockedDestroyed;
@@ -110,13 +118,13 @@ public partial class GroupWindow : Window
         if (_loading)
         {
             error = "Aguarde: este grupo ainda está reabrindo os apps salvos.";
-            Status(error);
+            StatusError(error);
             return false;
         }
         if (AppController.Instance.OwnerOf(candidate.Handle) is { } owner)
         {
             error = $"\"{candidate.Title}\" já está em \"{owner.GroupName}\".";
-            Status(error);
+            StatusError(error);
             return false;
         }
         IGroupedWindow host;
@@ -124,7 +132,7 @@ public partial class GroupWindow : Window
         catch (Exception ex)
         {
             error = ex.Message;
-            Status("Não foi possível agrupar: " + ex.Message);
+            StatusError("Não foi possível agrupar: " + ex.Message);
             return false;
         }
 
@@ -152,8 +160,7 @@ public partial class GroupWindow : Window
         Win32.SetWindowPos(hwnd, 0, rect.Left, rect.Top, width, height, Win32.SWP_NOZORDER | Win32.SWP_NOACTIVATE);
     }
 
-    public IGroupedWindow? FindHost(nint target) =>
-        Hosts.FirstOrDefault(h => h.Target == target) ?? _pendingHosts.OfType<IGroupedWindow>().FirstOrDefault(h => h.Target == target);
+    public IGroupedWindow? FindHost(nint target) => target == 0 ? null : Hosts.FirstOrDefault(h => h.Target == target);
 
     /// <summary>Divide por igual: colunas até 3 janelas, grade a partir de 4.</summary>
     public void ApplyAutoLayout() => Mutate(() => { _tree.ApplyPreset(Count <= 3 ? Preset.Columns : Preset.Grid); _maximized = null; });
@@ -191,6 +198,9 @@ public partial class GroupWindow : Window
     {
         _closeDecided = true;
         _closeApps = closeApps;
+        // Já fechando (o diálogo de OnClosing pode estar aberto e o Quit chegou): Close() de novo lança
+        // InvalidOperationException. A decisão acima basta: OnClosing a respeita ao voltar do diálogo.
+        if (_closeStarted || _closed) return;
         Close();
     }
 
@@ -248,15 +258,37 @@ public partial class GroupWindow : Window
     public SavedGroup ToSaved()
     {
         var bounds = WindowState == WindowState.Normal || RestoreBounds.IsEmpty ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        var hosts = Hosts;
+        // Uma foto de processos para todos os terminais do grupo (tirada só se algum terminal existir).
+        var processes = new Lazy<List<(uint Pid, uint Parent, string Name)>>(Win32.ProcessParents);
         return new SavedGroup
         {
-            Id = Id, Name = GroupName, Tabs = _mode == LayoutMode.Tabs, Layout = _tree.ToDto(),
+            Id = Id, Name = GroupName, Tabs = _mode == LayoutMode.Tabs, Layout = _tree.ToDto(host => StateOf(host, processes)),
             Left = bounds.Left, Top = bounds.Top, Width = bounds.Width, Height = bounds.Height,
             Maximized = WindowState == WindowState.Maximized,
+            ActiveIndex = _active is null ? -1 : hosts.IndexOf(_active),
+            MaximizedIndex = _maximized is null ? -1 : hosts.IndexOf(_maximized),
         };
     }
 
-    /// <summary>Reabre um grupo salvo: reencontra ou reabre cada app e monta o layout salvo.</summary>
+    /// <summary>Última pasta lida de cada terminal: se o app fechar, o painel de espera ainda reabre no mesmo lugar.</summary>
+    private readonly Dictionary<IGroupedWindow, string> _lastDirectory = new();
+
+    /// <summary>O que salvar de um app agora: identidade atual, título atual e, nos terminais, a pasta atual.</summary>
+    private AppIdentity StateOf(IGroupedWindow host) => StateOf(host, null);
+
+    private AppIdentity StateOf(IGroupedWindow host, Lazy<List<(uint Pid, uint Parent, string Name)>>? processes)
+    {
+        if (host is PlaceholderHost) return host.Identity;
+        if (host.IsAttached && TerminalDirectory.Of(host.Target, processes) is { } dir) _lastDirectory[host] = dir;
+        return host.Identity with
+        {
+            Title = host.CurrentTitle,
+            WorkingDirectory = _lastDirectory.GetValueOrDefault(host) ?? host.Identity.WorkingDirectory,
+        };
+    }
+
+    /// <summary>Reabre um grupo salvo: monta o layout salvo na hora e troca cada painel pela janela real quando ela aparece.</summary>
     public async Task LoadAsync(SavedGroup saved)
     {
         _loading = true;
@@ -284,67 +316,115 @@ public partial class GroupWindow : Window
 
     private async Task LoadAppsAsync(SavedGroup saved)
     {
-        var apps = new List<AppIdentity>();
-        CollectApps(saved.Layout, apps);
-        var hosts = _pendingHosts;
-        hosts.Clear();
-        var taken = AppController.Instance.HostedHandles();
-        for (var i = 0; i < apps.Count; i++)
-        {
-            Status($"Abrindo apps… {i + 1}/{apps.Count}");
-            IGroupedWindow? host = null;
-            WindowCandidate? candidate = null;
-            try { candidate = await AppLauncher.ResolveAsync(apps[i], taken); }
-            catch { /* um app que falha não impede os outros */ }
-            if (_closed) break;
-            if (candidate is not null)
-            {
-                try { host = CreateHost(candidate); taken.Add(candidate.Handle); }
-                catch { host = null; }
-            }
-            hosts.Add(host);
-        }
-
-        if (_closed)
-        {
-            ReleasePending();
-            return;
-        }
-
-        var queue = new Queue<IGroupedWindow?>(hosts.ToList());
-        hosts.Clear(); // a partir daqui eles estão na árvore
+        var leaves = new List<NodeDto>();
+        CollectApps(saved.Layout, leaves);
+        var placeholders = leaves.Select(leaf => CreatePlaceholder(leaf.App!, leaf.Mode)).ToList();
+        var queue = new Queue<PlaceholderHost>(placeholders);
         _tree.Load(saved.Layout, _ => queue.Count > 0 ? queue.Dequeue() : null);
+
+        // Painel ativo (aba selecionada) e painel maximizado como estavam.
+        var hosts = Hosts;
+        _active = hosts.ElementAtOrDefault(saved.ActiveIndex) ?? hosts.FirstOrDefault();
+        _maximized = saved.Tabs ? null : hosts.ElementAtOrDefault(saved.MaximizedIndex);
+        Rebuild();
+
+        // Um app por vez: o "antes/depois" da lista de janelas identifica a janela nova de cada um.
+        var taken = AppController.Instance.HostedHandles();
+        var opened = 0;
+        for (var i = 0; i < placeholders.Count && !_closed && !_closing; i++)
+        {
+            Status($"Abrindo apps… {i + 1}/{placeholders.Count}");
+            if (await ReopenAsync(placeholders[i], taken)) opened++;
+        }
+        if (_closed || _closing) return;
+
         _loading = false;
         Rebuild();
-        if (Hosts.FirstOrDefault() is { } first) SetActive(first, focus: true);
-        var ok = hosts.Count(h => h is not null);
-        Status(ok == apps.Count ? $"{ok} app(s) restaurado(s)." : $"{ok} de {apps.Count} app(s) restaurado(s); os demais não abriram a tempo.");
-        RaiseChanged(persist: false); // não esquece os apps que não abriram
+        if (_active is not null) SetActive(_active, focus: true);
+        if (opened == placeholders.Count) Status(Texto.Plural(opened, "app restaurado.", "apps restaurados."));
+        else StatusError($"{opened} de {Texto.Plural(placeholders.Count, "app reaberto", "apps reabertos")}. "
+            + (placeholders.Count - opened == 1 ? "O outro ficou" : "Os outros ficaram") + " no lugar com \"Tentar de novo\".");
+        RaiseChanged(); // grava as janelas novas (HWND, processo) para a próxima reabertura reencontrá-las
     }
 
-    private static void CollectApps(NodeDto? node, List<AppIdentity> apps)
+    private static void CollectApps(NodeDto? node, List<NodeDto> leaves)
     {
         if (node is null) return;
-        if (node.App is not null) { apps.Add(node.App); return; }
-        foreach (var child in node.Children) CollectApps(child, apps);
+        if (node.App is not null) { leaves.Add(node); return; }
+        foreach (var child in node.Children) CollectApps(child, leaves);
     }
+
+    private PlaceholderHost CreatePlaceholder(AppIdentity identity, EmbedMode mode)
+    {
+        var placeholder = new PlaceholderHost(identity, mode);
+        placeholder.TargetClicked += h => SetActive(h, focus: false);
+        placeholder.RemoveRequested += p => Remove(p, closeApp: false);
+        placeholder.RetryRequested += async p =>
+        {
+            if (p.IsOpening) return;
+            if (await ReopenAsync(p, AppController.Instance.HostedHandles()) && !_loading) RaiseChanged();
+        };
+        return placeholder;
+    }
+
+    /// <summary>Reencontra ou reabre o app de um painel de espera e põe a janela real no lugar dele.</summary>
+    private async Task<bool> ReopenAsync(PlaceholderHost placeholder, ISet<nint> taken)
+    {
+        placeholder.ShowOpening();
+        taken.UnionWith(AppController.Instance.HostedHandles()); // outros grupos podem estar reabrindo ao mesmo tempo
+        WindowCandidate? candidate = null;
+        try { candidate = await AppLauncher.ResolveAsync(placeholder.Identity, taken); }
+        catch { /* um app que falha não impede os outros */ }
+        if (_closed || _closing || _tree.Find(placeholder) is null) return false; // grupo fechou ou o painel foi removido
+        if (candidate is not null && AppController.Instance.OwnerOf(candidate.Handle) is not null) candidate = null;
+        if (candidate is null)
+        {
+            placeholder.ShowFailed(AppLauncher.WhyNot(placeholder.Identity));
+            return false;
+        }
+
+        IGroupedWindow host;
+        try { host = CreateHost(candidate, ModeFor(placeholder)); }
+        catch (Exception ex)
+        {
+            placeholder.ShowFailed(ex.Message);
+            return false;
+        }
+        taken.Add(candidate.Handle);
+        if (placeholder.Identity.WorkingDirectory is { } dir) _lastDirectory[host] = dir;
+        _tree.Replace(placeholder, host);
+        if (_active == placeholder) _active = host;
+        if (_maximized == placeholder) _maximized = host;
+        DetachFromTree(placeholder);
+        Rebuild();
+        if (!_loading && _active == host) SetActive(host, focus: true);
+        return true;
+    }
+
+    /// <summary>A escolha do usuário para o programa manda; sem ela, volta no modo em que estava.</summary>
+    private EmbedMode ModeFor(PlaceholderHost placeholder) =>
+        AppController.Instance.Settings.GetOverride(placeholder.Identity.ExePath) != EmbedMode.Auto ? EmbedMode.Auto : placeholder.Mode;
 
     // ================= Ciclo de vida =================
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        if (!_closeDecided && Count > 0)
+        _closeStarted = true;
+        if (!_closeDecided && HasWindows)
         {
-            var closeApps = ChoiceDialog.AskCloseGroups(this, $"\"{GroupName}\"");
-            if (closeApps is null) { e.Cancel = true; return; }
-            _closeApps = closeApps.Value;
+            var closeApps = ChoiceDialog.AskCloseGroups(this, $"Fechar o grupo \"{GroupName}\"?");
+            // O diálogo é modal e bombeia mensagens: o Quit/Sair pode ter decidido enquanto ele estava aberto.
+            if (!_closeDecided)
+            {
+                if (closeApps is null) { _closeStarted = false; e.Cancel = true; return; }
+                _closeApps = closeApps.Value;
+            }
         }
 
-        if (IsSaved) Changed?.Invoke(this, false); // guarda posição/tamanho sem mexer no layout salvo
+        if (IsSaved) Changed?.Invoke(this); // guarda posição, tamanho, painel ativo e pastas dos terminais
         _closing = true;
         _watch.Stop();
         _statusClear.Stop();
-        ReleasePending(); // apps já reabertos de um grupo que ainda estava carregando
         _overlay.Close();
 
         // Precisa acontecer ANTES do WPF destruir o HWND desta janela: janelas filhas seriam destruídas junto.
@@ -355,24 +435,12 @@ public partial class GroupWindow : Window
             host.Release();
             DetachFromTree(host);
             host.Dispose();
-            if (_closeApps && attached) Win32.PostMessage(target, Win32.WM_CLOSE, 0, 0);
+            if (_closeApps && attached && target != 0) Win32.PostMessage(target, Win32.WM_CLOSE, 0, 0);
         }
         base.OnClosing(e);
     }
 
-    /// <summary>Hosts criados durante o carregamento, ainda fora da árvore. Precisam ser devolvidos se o grupo fechar antes.</summary>
-    private readonly List<IGroupedWindow?> _pendingHosts = new();
-
-    private void ReleasePending()
-    {
-        foreach (var host in _pendingHosts.OfType<IGroupedWindow>().ToList())
-        {
-            try { host.Release(); DetachFromTree(host); host.Dispose(); } catch { }
-        }
-        _pendingHosts.Clear();
-    }
-
-    public IEnumerable<nint> HostedHandles => Hosts.Select(h => h.Target).Concat(_pendingHosts.OfType<IGroupedWindow>().Select(h => h.Target));
+    public IEnumerable<nint> HostedHandles => Hosts.Select(h => h.Target).Where(t => t != 0);
 
     /// <summary>O grupo deixou de ser salvo (ex.: o usuário apagou o salvo na janela principal).</summary>
     public void Unsave() => SetSaved(false);
@@ -414,7 +482,7 @@ public partial class GroupWindow : Window
         var resolved = mode == EmbedMode.Auto
             ? EmbedPolicy.Resolve(host.Target, host.ProcessId, host.Identity.ExePath, app.Settings)
             : mode;
-        if (resolved == host.Mode) { Status($"Modo {EmbedPolicy.Label(resolved).ToLowerInvariant()} (já estava)."); return; }
+        if (resolved == host.Mode) { Status($"Modo \"{ModeTitle(resolved)}\" (já estava)."); return; }
 
         var hwnd = host.Target;
         host.Release();
@@ -423,7 +491,7 @@ public partial class GroupWindow : Window
         var candidate = WindowCatalog.Describe(hwnd);
         IGroupedWindow? replacement = null;
         try { if (candidate is not null) replacement = CreateHost(candidate, resolved); }
-        catch (Exception ex) { Status("Não deu para trocar o modo: " + ex.Message); }
+        catch (Exception ex) { StatusError("Não deu para trocar o modo: " + ex.Message); }
         Mutate(() =>
         {
             if (replacement is not null) _tree.Replace(host, replacement);
@@ -432,7 +500,7 @@ public partial class GroupWindow : Window
         if (replacement is not null)
         {
             SetActive(replacement, focus: true);
-            Status($"\"{replacement.CurrentTitle}\" agora está {EmbedPolicy.Label(resolved).ToLowerInvariant()}. Lembrado para {System.IO.Path.GetFileName(host.Identity.ExePath)}.");
+            Status($"\"{replacement.CurrentTitle}\" agora está em \"{ModeTitle(resolved)}\". Lembrado para {System.IO.Path.GetFileName(host.Identity.ExePath)}.");
         }
     }
 
@@ -453,9 +521,23 @@ public partial class GroupWindow : Window
         var lost = Hosts.Where(h => !h.IsAttached).ToList();
         if (lost.Count > 0)
         {
-            foreach (var host in lost) { DetachFromTree(host); host.Dispose(); }
-            Mutate(() => { foreach (var host in lost) _tree.Remove(host); }, persist: false);
-            Status($"{string.Join(", ", lost.Select(h => $"\"{h.CurrentTitle}\""))} foi fechada e saiu do grupo.");
+            // Grupo salvo: o app fechado deixa um painel "Reabrir" no lugar (o layout salvo continua com ele).
+            var keep = IsSaved ? lost.ToDictionary(h => h, StateOf) : null;
+            foreach (var host in lost) { DetachFromTree(host); host.Dispose(); _lastDirectory.Remove(host); }
+            Mutate(() =>
+            {
+                foreach (var host in lost)
+                {
+                    if (keep is null) { _tree.Remove(host); continue; }
+                    var placeholder = CreatePlaceholder(keep[host], host.Mode);
+                    placeholder.ShowClosed();
+                    _tree.Replace(host, placeholder);
+                    if (_active == host) _active = placeholder;
+                    if (_maximized == host) _maximized = placeholder;
+                }
+            });
+            var names = string.Join(", ", lost.Select(h => $"\"{h.CurrentTitle}\""));
+            Status(IsSaved ? $"{names} foi fechada; o lugar dela fica guardado no grupo." : $"{names} foi fechada e saiu do grupo.");
         }
 
         foreach (var host in Hosts)
@@ -473,25 +555,26 @@ public partial class GroupWindow : Window
         host.Release(keepPosition);
         DetachFromTree(host);
         host.Dispose();
+        _lastDirectory.Remove(host);
         Mutate(() => _tree.Remove(host));
-        if (closeApp && attached) Win32.PostMessage(target, Win32.WM_CLOSE, 0, 0);
-        Status(keepPosition ? "Janela saiu do grupo." : "Janela devolvida à área de trabalho.");
+        if (closeApp && attached && target != 0) Win32.PostMessage(target, Win32.WM_CLOSE, 0, 0);
+        Status(host is PlaceholderHost ? "Painel removido do grupo." : keepPosition ? "Janela saiu do grupo." : "Janela devolvida à área de trabalho.");
     }
 
     // ================= Layout =================
 
     /// <summary>Guarda os tamanhos atuais, aplica a mudança, redesenha e avisa.</summary>
-    private void Mutate(Action change, bool persist = true)
+    private void Mutate(Action change)
     {
         CaptureWeights();
         change();
         Rebuild();
-        RaiseChanged(persist);
+        RaiseChanged();
     }
 
-    private void RaiseChanged(bool persist = true)
+    private void RaiseChanged()
     {
-        if (_ready && !_loading && !_closing) Changed?.Invoke(this, persist);
+        if (_ready && !_loading && !_closing) Changed?.Invoke(this);
     }
 
     private void Rebuild()
@@ -538,7 +621,7 @@ public partial class GroupWindow : Window
                 Place(splitter, split.Horizontal, Count(grid, split.Horizontal) - 1);
                 grid.Children.Add(splitter);
             }
-            AddDefinition(grid, split.Horizontal, new GridLength(Math.Max(0.05, split.Weights[i]), GridUnitType.Star));
+            AddDefinition(grid, split.Horizontal, new GridLength(Math.Max(0.05, split.Weights[i]), GridUnitType.Star), PaneMinSize);
             var child = BuildNode(split.Children[i]);
             Place(child, split.Horizontal, Count(grid, split.Horizontal) - 1);
             grid.Children.Add(child);
@@ -546,10 +629,10 @@ public partial class GroupWindow : Window
         _splitGrids[split] = grid;
         return grid;
 
-        static void AddDefinition(Grid g, bool horizontal, GridLength length)
+        static void AddDefinition(Grid g, bool horizontal, GridLength length, double min = 0)
         {
-            if (horizontal) g.ColumnDefinitions.Add(new ColumnDefinition { Width = length });
-            else g.RowDefinitions.Add(new RowDefinition { Height = length });
+            if (horizontal) g.ColumnDefinitions.Add(new ColumnDefinition { Width = length, MinWidth = min });
+            else g.RowDefinitions.Add(new RowDefinition { Height = length, MinHeight = min });
         }
         static int Count(Grid g, bool horizontal) => horizontal ? g.ColumnDefinitions.Count : g.RowDefinitions.Count;
         static void Place(UIElement e, bool horizontal, int index)
@@ -579,7 +662,7 @@ public partial class GroupWindow : Window
         view.MaximizeButton.Click += (_, _) => ToggleMaximize(host);
         view.CloseButton.Click += (_, _) => Remove(host, closeApp: false);
         view.ModeButton.Click += (_, _) => ShowModeMenu(host, view.ModeButton);
-        view.MaximizeButton.Content = _maximized == host ? "⤡" : "⤢";
+        view.MaximizeButton.Content = GlyphIcon(_maximized == host ? '\uE73F' : '\uE740');
         view.MaximizeButton.ToolTip = _maximized == host ? "Restaurar layout (duplo clique no cabeçalho)" : "Maximizar painel (duplo clique no cabeçalho)";
         AutomationProperties.SetName(view.MaximizeButton, _maximized == host ? "Restaurar layout" : "Maximizar painel");
         AutomationProperties.SetName(view.CloseButton, "Desagrupar");
@@ -631,6 +714,14 @@ public partial class GroupWindow : Window
         return view;
     }
 
+    /// <summary>Nome do modo para o usuário. (O motivo técnico em EmbedPolicy continua com os nomes antigos.)</summary>
+    private static string ModeTitle(EmbedMode mode) => mode switch
+    {
+        EmbedMode.Reparent => "Dentro do painel",
+        EmbedMode.Dock => "Sobre o painel",
+        _ => "Automático (recomendado)",
+    };
+
     private void ShowModeMenu(IGroupedWindow host, Button anchor)
     {
         var app = AppController.Instance;
@@ -641,14 +732,15 @@ public partial class GroupWindow : Window
         {
             var header = new StackPanel();
             header.Children.Add(new TextBlock { Text = (choice == mode ? "● " : "○ ") + title, FontWeight = FontWeights.SemiBold });
-            header.Children.Add(new TextBlock { Text = hint, FontSize = 11, Opacity = 0.7, TextWrapping = TextWrapping.Wrap, MaxWidth = 320 });
+            header.Children.Add(new TextBlock { Text = hint, FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextDim"], TextWrapping = TextWrapping.Wrap, MaxWidth = 320 });
             var item = new MenuItem { Header = header };
             item.Click += (_, _) => SwitchMode(host, mode);
             menu.Items.Add(item);
         }
-        Add(EmbedMode.Auto, "Automático", EmbedPolicy.Explain(host.Target, host.ProcessId, host.Identity.ExePath, app.Settings));
-        Add(EmbedMode.Reparent, "Incorporada", "A janela vira parte do painel. Ideal para terminais e apps clássicos.");
-        Add(EmbedMode.Dock, "Acoplada", "A janela continua real, posicionada sobre o painel. Ideal para navegadores, VS Code, Discord e apps com GPU.");
+        menu.Items.Add(new MenuItem { Header = "Como mostrar este app", IsEnabled = false, FontWeight = FontWeights.SemiBold });
+        Add(EmbedMode.Auto, ModeTitle(EmbedMode.Auto), EmbedPolicy.Explain(host.Target, host.ProcessId, host.Identity.ExePath, app.Settings));
+        Add(EmbedMode.Reparent, ModeTitle(EmbedMode.Reparent), "Mais integrado. Use para terminais e apps comuns.");
+        Add(EmbedMode.Dock, ModeTitle(EmbedMode.Dock), "A janela fica por cima do painel. Use se o app ficar preto, piscando ou lento.");
         menu.Items.Add(new MenuItem { Header = $"A escolha fica salva para {exe}.", IsEnabled = false });
         menu.IsOpen = true;
     }
@@ -684,7 +776,8 @@ public partial class GroupWindow : Window
             title.MaxWidth = 220;
             title.VerticalAlignment = VerticalAlignment.Center;
             header.Children.Add(title);
-            var close = new Button { Content = "✕", Style = (Style)FindResource("GhostButton"), Padding = new Thickness(5, 0, 5, 0), Margin = new Thickness(6, 0, 0, 0), FontSize = 10, ToolTip = "Desagrupar (o app continua aberto)", Focusable = false };
+            var close = new Button { Content = GlyphIcon('\uE8BB', 10), Style = (Style)FindResource("GhostButton"), Padding = new Thickness(5, 0, 5, 0), Margin = new Thickness(6, 0, 0, 0), ToolTip = "Desagrupar (o app continua aberto)", Focusable = false };
+            AutomationProperties.SetName(close, "Desagrupar");
             close.Click += (_, _) => Remove(host, closeApp: false);
             header.Children.Add(close);
             tabs.Items.Add(new TabItem { Header = header, Content = host.View });
@@ -738,12 +831,31 @@ public partial class GroupWindow : Window
 
     private static bool Contains(Int32Rect r, int x, int y) => x >= r.X && x < r.X + r.Width && y >= r.Y && y < r.Y + r.Height;
 
-    private void Status(string text)
+    /// <summary>Mensagem de sucesso/info: some sozinha em 4 s.</summary>
+    private void Status(string text) => ShowStatus(text, error: false);
+
+    /// <summary>Erro: cor Danger, fica até o usuário clicar no ✕.</summary>
+    private void StatusError(string text) => ShowStatus(text, error: true);
+
+    private void ShowStatus(string text, bool error)
     {
         StatusText.Text = text;
+        StatusText.Foreground = (Brush)FindResource(error ? "Danger" : "TextDim");
+        AutomationProperties.SetLiveSetting(StatusText, error ? AutomationLiveSetting.Assertive : AutomationLiveSetting.Polite);
+        StatusClose.Visibility = error ? Visibility.Visible : Visibility.Collapsed;
+        StatusBar.Visibility = Visibility.Visible;
         _statusClear.Stop();
-        _statusClear.Start();
+        if (!error) _statusClear.Start();
     }
+
+    private void HideStatus()
+    {
+        _statusClear.Stop();
+        StatusBar.Visibility = Visibility.Collapsed;
+        StatusText.Text = "";
+    }
+
+    private void StatusClose_Click(object sender, RoutedEventArgs e) => HideStatus();
 
     // ================= Barra do grupo =================
 
@@ -769,13 +881,44 @@ public partial class GroupWindow : Window
             }
             var button = new Button { Content = canvas, ToolTip = tip, Style = (Style)FindResource("GhostButton"), Padding = new Thickness(6, 4, 6, 4) };
             AutomationProperties.SetName(button, tip);
-            button.Click += (_, _) =>
-            {
-                if (_mode == LayoutMode.Tabs) GridModeButton.IsChecked = true;
-                Mutate(() => { _tree.ApplyPreset(preset); _maximized = null; });
-            };
+            button.Click += (_, _) => ApplyLayout(preset);
             PresetPanel.Children.Add(button);
+            _layoutChoices.Add((preset, tip));
         }
+    }
+
+    private void ApplyLayout(Preset preset)
+    {
+        if (_mode == LayoutMode.Tabs) GridModeButton.IsChecked = true;
+        Mutate(() => { _tree.ApplyPreset(preset); _maximized = null; });
+    }
+
+    private void LayoutMenu_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu { PlacementTarget = LayoutMenuButton, Placement = PlacementMode.Bottom };
+        foreach (var (preset, tip) in _layoutChoices)
+        {
+            var item = new MenuItem { Header = tip };
+            item.Click += (_, _) => ApplyLayout(preset);
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Barra do grupo conforme a largura: abaixo de 900 DIP os rótulos somem (ficam os ícones, com ToolTip);
+    /// abaixo de 680 DIP os 5 layouts viram o menu "Layout ▾".
+    /// </summary>
+    private void ApplyBarWidth()
+    {
+        var width = ActualWidth > 0 ? ActualWidth : Width;
+        var labels = width >= 900 ? Visibility.Visible : Visibility.Collapsed;
+        NewGroupLabel.Visibility = labels;
+        EqualizeLabel.Visibility = labels;
+        LayoutLabel.Visibility = labels;
+        var layoutsFit = width >= 680;
+        PresetPanel.Visibility = layoutsFit ? Visibility.Visible : Visibility.Collapsed;
+        LayoutMenuButton.Visibility = layoutsFit ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void Mode_Checked(object sender, RoutedEventArgs e)
@@ -799,6 +942,14 @@ public partial class GroupWindow : Window
     private void Save_Changed(object sender, RoutedEventArgs e)
     {
         if (!_ready || _syncingSave || (SaveToggle.IsChecked == true) == IsSaved) return;
+        if (IsSaved)
+        {
+            // Já salvo: desligar sem perguntar era fácil demais de fazer por engano. Só desliga se confirmar.
+            var forget = ChoiceDialog.Ask(this, "SplitDeck", "Deixar de lembrar este grupo?",
+                new ChoiceOption("Deixar de lembrar", "O grupo continua aberto, mas não será reaberto sozinho.", Primary: true),
+                new ChoiceOption("Cancelar")) == 0;
+            if (!forget) { SetSaved(true); return; } // devolve o botão ao estado "salvo" (sem disparar o evento)
+        }
         SetSaved(SaveToggle.IsChecked == true);
         SaveToggled?.Invoke(this);
         Status(IsSaved ? "Grupo salvo: layout e apps serão lembrados." : "Grupo não será mais lembrado.");
@@ -810,8 +961,13 @@ public partial class GroupWindow : Window
         _syncingSave = true;
         SaveToggle.IsChecked = saved;
         _syncingSave = false;
-        SaveLabel.Text = saved ? "★ Salvo" : "☆ Salvar";
+        SaveIcon.Text = saved ? "\uE735" : "\uE734"; // estrela cheia / vazia
+        SaveLabel.Text = saved ? "Salvo" : "Salvar";
     }
+
+    /// <summary>Ícone do Segoe MDL2 Assets (glifo separado do texto).</summary>
+    private static TextBlock GlyphIcon(char glyph, double size = 12) =>
+        new() { Text = glyph.ToString(), Style = (Style)Application.Current.Resources["IconText"], FontSize = size };
 
     private void NewGroup_Click(object sender, RoutedEventArgs e) => NewGroupRequested?.Invoke(this);
 
@@ -852,21 +1008,22 @@ public partial class GroupWindow : Window
             _title.Margin = new Thickness(4, 0, 4, 0);
 
             MaximizeButton = new Button { Style = ghost, Padding = new Thickness(6, 0, 6, 0), Focusable = false };
-            CloseButton = new Button { Content = "✕", Style = ghost, Padding = new Thickness(6, 0, 6, 0), FontSize = 10, Focusable = false, ToolTip = "Desagrupar (o app continua aberto)" };
+            CloseButton = new Button { Content = GlyphIcon('\uE8BB', 10), Style = ghost, Padding = new Thickness(6, 0, 6, 0), Focusable = false, ToolTip = "Desagrupar (o app continua aberto)" };
             ModeButton = new Button
             {
-                Content = host.Mode == EmbedMode.Dock ? "◳" : "▣", Style = ghost, Padding = new Thickness(6, 0, 6, 0), Focusable = false,
-                ToolTip = host.Mode == EmbedMode.Dock
-                    ? "Acoplada: janela real posicionada sobre o painel (ideal para navegadores e apps com GPU). Clique para trocar."
-                    : "Incorporada: janela dentro do painel (ideal para terminais e apps clássicos). Clique para trocar.",
+                Content = GlyphIcon(host.Mode == EmbedMode.Dock ? '\uE8A7' : '\uE8A1'), Style = ghost, Padding = new Thickness(6, 0, 6, 0), Focusable = false,
+                ToolTip = "Como mostrar este app: " + ModeTitle(host.Mode) + ". Clique para trocar.",
             };
-            AutomationProperties.SetName(ModeButton, "Modo do painel");
+            AutomationProperties.SetName(ModeButton, "Como mostrar este app");
             _buttons = new StackPanel { Orientation = Orientation.Horizontal, Visibility = Visibility.Hidden };
-            _buttons.Children.Add(ModeButton);
+            if (host is not PlaceholderHost) _buttons.Children.Add(ModeButton);
             _buttons.Children.Add(MaximizeButton);
             _buttons.Children.Add(CloseButton);
 
-            var grip = new TextBlock { Text = "⋮⋮", FontSize = 10, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(7, 0, 2, 0), Foreground = (Brush)res["TextDim"], ToolTip = "Arraste para reorganizar" };
+            var grip = GlyphIcon('\uE76F', 10);
+            grip.Margin = new Thickness(7, 0, 2, 0);
+            grip.Foreground = (Brush)res["TextDim"];
+            grip.ToolTip = "Arraste para reorganizar";
             var bar = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(_buttons, Dock.Right);
             bar.Children.Add(_buttons);

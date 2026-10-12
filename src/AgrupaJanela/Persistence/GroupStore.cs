@@ -16,6 +16,10 @@ public sealed class SavedGroup
     public double Width { get; set; } = 1200;
     public double Height { get; set; } = 750;
     public bool Maximized { get; set; }
+    /// <summary>Painel ativo (aba selecionada no modo abas), na ordem das folhas do layout; -1 = nenhum.</summary>
+    public int ActiveIndex { get; set; } = -1;
+    /// <summary>Painel maximizado dentro do grupo (modo grade), na ordem das folhas; -1 = nenhum.</summary>
+    public int MaximizedIndex { get; set; } = -1;
     public DateTime SavedAt { get; set; }
 
     public int AppCount => Count(Layout);
@@ -29,26 +33,84 @@ public sealed class GroupStore
 {
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals };
     private const int MaxFileBytes = 2 * 1024 * 1024; // um groups.json legítimo tem poucos KB
-    private readonly string _path = AppPaths.GroupsFile;
+    /// <summary>Versão do formato gravado: {"SchemaVersion": 2, "Groups": [...]}. A v1 era só o array de grupos.</summary>
+    internal const int CurrentSchemaVersion = 2;
+    private readonly string _path;
+
+    /// <summary>O arquivo lido não pôde ser copiado para um .bak: não grava por cima dele até conseguir.</summary>
+    private bool _unpreserved;
+
+    /// <summary>Versão maior que a suportada (criada por um SplitDeck mais novo): trabalha em memória e não grava.</summary>
+    private int _futureVersion;
+
+    internal sealed class FileDto
+    {
+        public int SchemaVersion { get; set; }
+        public List<SavedGroup>? Groups { get; set; }
+    }
 
     /// <summary>Falha ao gravar (arquivo bloqueado por antivírus/backup etc.). Os grupos continuam funcionando.</summary>
     public event Action<string>? SaveFailed;
 
     public ObservableCollection<SavedGroup> Groups { get; } = new();
 
-    public GroupStore()
+    public GroupStore() : this(AppPaths.GroupsFile) { }
+
+    /// <summary>Pasta de teste: o construtor público sempre usa o groups.json real.</summary>
+    internal GroupStore(string path)
     {
+        _path = path;
+        string? text = null;
         try
         {
-            if (!File.Exists(_path) || new FileInfo(_path).Length > MaxFileBytes) return;
-            foreach (var group in JsonSerializer.Deserialize<List<SavedGroup>>(File.ReadAllText(_path), Options) ?? new())
+            if (!File.Exists(_path)) return;
+            // Grande demais para ser um groups.json legítimo: não é carregado, mas também não pode ser sobrescrito.
+            if (new FileInfo(_path).Length > MaxFileBytes) { Preserve(); return; }
+            text = File.ReadAllText(_path);
+            var loaded = Parse(text, out var version);
+            foreach (var group in loaded)
                 if (Sanitize(group)) Groups.Add(group);
+            if (version > CurrentSchemaVersion) _futureVersion = version;
         }
         catch
         {
-            // Arquivo corrompido: preserva uma cópia e começa vazio.
-            try { File.Copy(_path, _path + ".bak", overwrite: true); } catch { }
+            // Ilegível: guarda uma cópia antes de qualquer gravação e começa vazio.
+            if (text is not null) _futureVersion = FutureVersionOf(text);
+            Preserve();
         }
+    }
+
+    /// <summary>Lê o formato atual (envelope) e o antigo (array). Lança se o conteúdo não for reconhecível.</summary>
+    internal static List<SavedGroup> Parse(string text, out int version)
+    {
+        if (text.TrimStart().StartsWith('['))
+        {
+            version = 1;
+            return JsonSerializer.Deserialize<List<SavedGroup>>(text, Options) ?? new();
+        }
+        var file = JsonSerializer.Deserialize<FileDto>(text, Options) ?? throw new JsonException("groups.json vazio");
+        if (file.SchemaVersion < 1 || file.Groups is null) throw new JsonException("groups.json sem SchemaVersion/Groups válidos");
+        version = file.SchemaVersion;
+        return file.Groups;
+    }
+
+    /// <summary>Versão do envelope, se for maior que a suportada (mesmo que o resto esteja ilegível); senão 0.</summary>
+    private static int FutureVersionOf(string text)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(text);
+            if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+                && doc.RootElement.TryGetProperty(nameof(FileDto.SchemaVersion), out var v)
+                && v.TryGetInt32(out var version) && version > CurrentSchemaVersion) return version;
+        }
+        catch (System.Text.Json.JsonException) { }
+        return 0;
+    }
+
+    private void Preserve()
+    {
+        if (File.Exists(_path)) _unpreserved = AtomicFile.CopyAsBackup(_path) is null;
     }
 
     public void Save(SavedGroup group)
@@ -68,23 +130,25 @@ public sealed class GroupStore
 
     private void Flush()
     {
-        // Gravação atômica com uma nova tentativa: um bloqueio passageiro nunca pode desmontar os grupos.
-        for (var attempt = 0; attempt < 3; attempt++)
+        // Arquivo de uma versão mais nova: gravar apagaria dados que este app não entende.
+        if (_futureVersion > 0)
         {
-            try
+            SaveFailed?.Invoke($"O groups.json foi salvo por uma versão mais nova do SplitDeck (formato {_futureVersion}). Os grupos não foram gravados para não substituí-lo.");
+            return;
+        }
+        // Só grava depois de ter guardado uma cópia do arquivo ilegível que estava no lugar.
+        if (_unpreserved)
+        {
+            if (File.Exists(_path) && AtomicFile.CopyAsBackup(_path) is null)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-                var temp = _path + ".tmp";
-                File.WriteAllText(temp, JsonSerializer.Serialize(Groups.ToList(), Options));
-                File.Move(temp, _path, overwrite: true);
+                SaveFailed?.Invoke("O groups.json existente não pôde ser copiado; os grupos não foram gravados para não substituí-lo.");
                 return;
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                if (attempt == 2) { SaveFailed?.Invoke(ex.Message); return; }
-                Thread.Sleep(80);
-            }
+            _unpreserved = false;
         }
+        var file = new FileDto { SchemaVersion = CurrentSchemaVersion, Groups = Groups.ToList() };
+        try { AtomicFile.WriteAllText(_path, JsonSerializer.Serialize(file, Options)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { SaveFailed?.Invoke(ex.Message); }
     }
 
     /// <summary>Descarta/corrige valores impossíveis de um arquivo corrompido ou adulterado.</summary>
@@ -98,6 +162,9 @@ public sealed class GroupStore
         if (!double.IsFinite(group.Top) || Math.Abs(group.Top) > 50000) group.Top = double.NaN;
         var apps = 0;
         group.Layout = SanitizeNode(group.Layout, 0, ref apps);
+        var kept = Math.Min(apps, MaxAppsPerGroup); // apps além do limite foram descartados acima
+        if (group.ActiveIndex < -1 || group.ActiveIndex >= kept) group.ActiveIndex = -1;
+        if (group.MaximizedIndex < -1 || group.MaximizedIndex >= kept) group.MaximizedIndex = -1;
         return true;
     }
 

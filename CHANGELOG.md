@@ -6,6 +6,43 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+## [1.1.0] - 2026-10-12
+
+### Corrigido
+
+- Grupos salvos não reabriam apps que se atualizam sozinhos: Windows Terminal e outros apps da Loja (a pasta muda a cada versão, e o atalho do Terminal é `wt.exe`) e apps Squirrel como o Discord (`app-<versão>`). O app passa a ser reconhecido pela família do pacote/pasta raiz e é aberto na versão atual.
+- A janela reaberta não era gravada no grupo salvo (o HWND/processo antigo ficava no arquivo), então a próxima reabertura não reencontrava a janela e abria outra.
+- Um grupo salvo podia perder seus apps do arquivo quando eles não abriam e o grupo era alterado em seguida (ex.: trocar para abas).
+- Sair, atualizar ou desligar o Windows com a pergunta "fechar o grupo?" aberta lançava erro e podia impedir o app de sair (e o instalador de atualizar).
+- `groups.json` e `settings.json` grandes demais, corrompidos ou de uma versão mais nova nunca são sobrescritos sem antes guardar uma cópia (`.bak-data`); as gravações são atômicas.
+- "★ Salvo" apagava o grupo salvo com um clique; agora pede confirmação.
+
+### Adicionado
+
+- Reabrir um grupo salvo devolve o estado de cada painel: aba/painel ativo, painel maximizado e modo de exibição.
+- A janela de antes é reaproveitada mesmo minimizada, escondida na bandeja ou em outra área de trabalho virtual. Uma janela que já estava aberta nunca é puxada para o grupo só por ser do mesmo programa.
+- Apps que não abrem ficam no lugar como um painel com **Tentar de novo** e **Remover do grupo**; num grupo salvo, um app fechado deixa um painel **Reabrir**.
+- Terminais (Windows Terminal e console clássico) reabrem na pasta em que estavam.
+- `groups.json` com versão de formato (`SchemaVersion`); o formato antigo continua sendo lido.
+
+### Alterado
+
+- Visual: foco visível pelo teclado, contraste mínimo de acessibilidade nos botões e contornos, ícones nativos do Windows (Segoe MDL2), barra de título escura também no Windows 11.
+- Mensagens: rodapé de status no grupo (erros ficam até serem dispensados) e linha de mensagem na janela principal que não some sozinha; plurais corretos.
+- Textos: modos de painel passam a "Dentro do painel" e "Sobre o painel"; diálogo de fechar mais claro.
+- A barra do grupo se adapta a janelas estreitas e os painéis têm tamanho mínimo.
+- Mais leve na bandeja: memória privada de ~76 MB para ~16 MB (os atalhos globais não carregam mais a renderização por GPU), devolução de memória no momento certo, e gravação dos grupos salvos agrupada (1 s após a última mudança).
+
+### Segurança
+
+- Uma pasta de terminal com `;` no nome nunca vai para a linha de comando do Windows Terminal (o `wt` trata `;` como separador de comandos).
+- App e instalador só carregam DLLs do System32.
+- Rodando como administrador, o SplitDeck não se atualiza sozinho e não sugere mais ser aberto como administrador.
+- A atualização baixa para uma pasta aleatória em `%LOCALAPPDATA%` e mantém o arquivo travado desde a conferência do SHA-256 até o instalador iniciar.
+- O filtro de argumentos com segredos cobre `curl -u`, `sshpass`, URLs assinadas, tokens do GitHub, chaves `sk-` e JWT.
+- A desinstalação não atravessa junctions/links; a conferência do assinante do runtime exige o nome exato.
+- CI: actions fixadas por SHA de commit e permissões mínimas; avisos do compilador viram erro; resultados e cobertura dos testes publicados; testes do instalador.
+
 ## [1.0.1] - 2026-09-30
 
 ### Corrigido
@@ -44,6 +81,7 @@ Primeira versão pública, feita sobre o **.NET 10 (LTS)**.
 - Instância única e sinais por usuário e sessão (`Local\SplitDeck.{SID}`); callbacks de eventos do Windows nunca deixam exceções escaparem.
 - IDs do menu de sistema compatíveis com a máscara de `WM_SYSCOMMAND`; itens de outros apps nunca são alterados.
 
-[Não lançado]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.1...HEAD
+[Não lançado]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/brunocsilva41/agrupa-janela/releases/tag/v1.0.0

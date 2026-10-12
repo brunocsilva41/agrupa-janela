@@ -12,11 +12,32 @@
   <SolidColorBrush x:Key="TextDim" Color="#9A9EA6"/>
   <SolidColorBrush x:Key="Accent" Color="#4C8DFF"/>
   <SolidColorBrush x:Key="AccentSoft" Color="#1F3A66"/>
+  <!-- Fundo de botões primários (Accent continua para bordas e indicadores). Branco por cima: 4,7:1; hover mais escuro (5,3:1). -->
+  <SolidColorBrush x:Key="AccentFill" Color="#2F6FE0"/>
+  <SolidColorBrush x:Key="AccentFillHover" Color="#2A66D6"/>
+  <SolidColorBrush x:Key="AccentFillPressed" Color="#2458B8"/>
+  <!-- Texto secundário dentro de botões primários: branco (nenhum tom claro passa de 4,5:1 sobre o azul) -->
+  <SolidColorBrush x:Key="TextOnAccent" Color="#FFFFFF"/>
+  <!-- Contornos interativos: caixa de CheckBox, alça do GridSplitter, polegar da ScrollBar -->
+  <SolidColorBrush x:Key="LineStrong" Color="#7C8089"/>
+  <SolidColorBrush x:Key="ThumbHover" Color="#969AA3"/>
   <SolidColorBrush x:Key="Warn" Color="#E0A458"/>
-  <SolidColorBrush x:Key="Danger" Color="#E5534B"/>
+  <SolidColorBrush x:Key="Danger" Color="#F47067"/>
+  <SolidColorBrush x:Key="DangerHover" Color="#F8857E"/>
 
   <Style x:Key="FocusNone" TargetType="Control">
     <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+  </Style>
+
+  <!-- Foco de teclado (Tab): moldura de 2px na cor Accent. O mouse não ativa o foco visual do WPF. -->
+  <Style x:Key="FocusRing">
+    <Setter Property="Control.Template">
+      <Setter.Value>
+        <ControlTemplate>
+          <Rectangle Margin="-2" RadiusX="5" RadiusY="5" Stroke="{StaticResource Accent}" StrokeThickness="2" SnapsToDevicePixels="True"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 
   <!-- Botão padrão (plano) -->
@@ -26,7 +47,7 @@
     <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="Padding" Value="10,4"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -45,12 +66,50 @@
     </Setter>
   </Style>
 
-  <!-- Botão de destaque -->
+  <!-- Botão de destaque: fundo AccentFill, com cor própria para hover e pressionado -->
   <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-    <Setter Property="Background" Value="{StaticResource Accent}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+    <Setter Property="Background" Value="{StaticResource AccentFill}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource AccentFill}"/>
     <Setter Property="Foreground" Value="White"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource AccentFillHover}"/></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource AccentFillPressed}"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Ação destrutiva (ex.: remover um grupo salvo): vermelho, nunca azul -->
+  <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Background" Value="{StaticResource Danger}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource Danger}"/>
+    <Setter Property="Foreground" Value="{StaticResource Bg}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource DangerHover}"/></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource Danger}"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 
   <!-- Botão sem fundo (ícones, cabeçalhos) -->
@@ -66,7 +125,7 @@
     <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
     <Setter Property="Background" Value="Transparent"/>
     <Setter Property="Padding" Value="10,3"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -117,7 +176,7 @@
     <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
   </Style>
   <Style TargetType="ListBoxItem">
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Padding" Value="8,5"/>
     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
     <Setter Property="Template">
@@ -148,7 +207,10 @@
               <Thumb>
                 <Thumb.Template>
                   <ControlTemplate TargetType="Thumb">
-                    <Border Background="{StaticResource Pressed}" CornerRadius="4" Margin="1"/>
+                    <Border x:Name="thumb" Background="{StaticResource LineStrong}" CornerRadius="4" Margin="1"/>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="thumb" Property="Background" Value="{StaticResource ThumbHover}"/></Trigger>
+                    </ControlTemplate.Triggers>
                   </ControlTemplate>
                 </Thumb.Template>
               </Thumb>
@@ -194,16 +256,16 @@
   <!-- Divisórias entre painéis -->
   <Style TargetType="GridSplitter">
     <Setter Property="Background" Value="{StaticResource Bg}"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="GridSplitter">
           <Border x:Name="b" Background="{TemplateBinding Background}">
-            <Border x:Name="grip" Background="{StaticResource Line}" CornerRadius="1"/>
+            <Border x:Name="grip" Background="{StaticResource LineStrong}" CornerRadius="1"/>
           </Border>
           <ControlTemplate.Triggers>
-            <Trigger Property="ResizeDirection" Value="Columns"><Setter TargetName="grip" Property="Width" Value="2"/><Setter TargetName="grip" Property="Height" Value="28"/></Trigger>
-            <Trigger Property="ResizeDirection" Value="Rows"><Setter TargetName="grip" Property="Height" Value="2"/><Setter TargetName="grip" Property="Width" Value="28"/></Trigger>
+            <Trigger Property="ResizeDirection" Value="Columns"><Setter TargetName="grip" Property="Width" Value="3"/><Setter TargetName="grip" Property="Height" Value="32"/></Trigger>
+            <Trigger Property="ResizeDirection" Value="Rows"><Setter TargetName="grip" Property="Height" Value="3"/><Setter TargetName="grip" Property="Width" Value="32"/></Trigger>
             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource AccentSoft}"/><Setter TargetName="grip" Property="Background" Value="{StaticResource Accent}"/></Trigger>
             <Trigger Property="IsDragging" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource Accent}"/></Trigger>
           </ControlTemplate.Triggers>
@@ -234,7 +296,7 @@
   </Style>
   <Style TargetType="TabItem">
     <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="TabItem">
@@ -257,13 +319,13 @@
   <!-- Caixa de seleção -->
   <Style TargetType="CheckBox">
     <Setter Property="Foreground" Value="{StaticResource Text}"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="CheckBox">
           <StackPanel Orientation="Horizontal" Background="Transparent">
-            <Border x:Name="box" Width="16" Height="16" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Line}" Background="{StaticResource Surface2}" VerticalAlignment="Center">
+            <Border x:Name="box" Width="16" Height="16" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource LineStrong}" Background="{StaticResource Surface2}" VerticalAlignment="Center">
               <TextBlock x:Name="mark" Text="✓" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
             </Border>
             <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -279,6 +341,13 @@
         </ControlTemplate>
       </Setter.Value>
     </Setter>
+  </Style>
+
+  <!-- Ícones da interface: glifos do Segoe MDL2 Assets (sempre num TextBlock separado do texto) -->
+  <Style x:Key="IconText" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
   </Style>
 
   <Style x:Key="SectionTitle" TargetType="TextBlock">

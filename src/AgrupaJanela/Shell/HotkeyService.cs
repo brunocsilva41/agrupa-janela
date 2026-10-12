@@ -1,5 +1,8 @@
 using AgrupaJanela.Native;
-using System.Windows.Interop;
+using System.ComponentModel;
+using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
+using System.Windows.Threading;
 
 namespace AgrupaJanela.Shell;
 
@@ -20,7 +23,13 @@ public sealed class HotkeyService : IDisposable
         (HotkeyAction.MaximizePane, VK_RETURN, "Enter", "maximizar/restaurar painel"),
     };
 
-    private readonly HwndSource _source;
+    private const string ClassName = "SplitDeck.Hotkeys";
+
+    private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
+    // Campos mantêm vivos o delegate (chamado pelo Windows) e a instância da classe, até o Dispose.
+    private readonly Win32.WindowProc _windowProc;
+    private readonly nint _instance;
+    private nint _hwnd;
     private readonly List<(string Shortcut, string Description)> _registered = new();
 
     public event Action<HotkeyAction>? Pressed;
@@ -30,33 +39,56 @@ public sealed class HotkeyService : IDisposable
 
     public HotkeyService()
     {
-        // Janela só de mensagens (HWND_MESSAGE = -3): recebe WM_HOTKEY sem aparecer em lugar nenhum.
-        _source = new HwndSource(new HwndSourceParameters("SplitDeck.Hotkeys") { ParentWindow = -3, WindowStyle = 0 });
-        _source.AddHook(Hook);
+        // Janela só de mensagens (HWND_MESSAGE) em Win32 puro: recebe WM_HOTKEY sem aparecer em lugar nenhum.
+        // Não usa HwndSource: ele liga a pilha de renderização do WPF (Direct3D, dezenas de MB) mesmo sem janelas.
+        _windowProc = WndProc;
+        _instance = Win32.GetModuleHandle(null);
+        var wc = new Win32.WNDCLASSEX
+        {
+            cbSize = (uint)Marshal.SizeOf<Win32.WNDCLASSEX>(),
+            lpfnWndProc = _windowProc,
+            hInstance = _instance,
+            lpszClassName = ClassName,
+        };
+        if (Win32.RegisterClassEx(ref wc) == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+        _hwnd = Win32.CreateWindowEx(0, ClassName, "", 0, 0, 0, 0, 0, Win32.HWND_MESSAGE, 0, _instance, 0);
+        if (_hwnd == 0)
+        {
+            var error = Marshal.GetLastWin32Error();
+            Win32.UnregisterClass(ClassName, _instance);
+            throw new Win32Exception(error);
+        }
 
         foreach (var (action, key, name, description) in Definitions)
         {
             var id = (int)action + 1;
-            if (Win32.RegisterHotKey(_source.Handle, id, Win32.MOD_CONTROL | Win32.MOD_ALT | Win32.MOD_NOREPEAT, key))
+            if (Win32.RegisterHotKey(_hwnd, id, Win32.MOD_CONTROL | Win32.MOD_ALT | Win32.MOD_NOREPEAT, key))
                 _registered.Add(($"Ctrl+Alt+{name}", description));
-            else if (Win32.RegisterHotKey(_source.Handle, id, Win32.MOD_CONTROL | Win32.MOD_ALT | MOD_SHIFT | Win32.MOD_NOREPEAT, key))
+            else if (Win32.RegisterHotKey(_hwnd, id, Win32.MOD_CONTROL | Win32.MOD_ALT | MOD_SHIFT | Win32.MOD_NOREPEAT, key))
                 _registered.Add(($"Ctrl+Alt+Shift+{name}", description));
             else
                 _registered.Add(("(em uso)", description));
         }
     }
 
-    private nint Hook(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+    private nint WndProc(nint hwnd, uint msg, nint wParam, nint lParam)
     {
-        if (msg != Win32.WM_HOTKEY) return 0;
-        handled = true;
-        Pressed?.Invoke((HotkeyAction)((int)wParam - 1));
+        if (msg != Win32.WM_HOTKEY) return Win32.DefWindowProc(hwnd, msg, wParam, lParam);
+        try { Pressed?.Invoke((HotkeyAction)((int)wParam - 1)); }
+        catch (Exception ex)
+        {
+            // Não pode sair do callback nativo: devolve a exceção ao Dispatcher (mesmo tratamento de antes).
+            _dispatcher.BeginInvoke(() => ExceptionDispatchInfo.Capture(ex).Throw());
+        }
         return 0;
     }
 
     public void Dispose()
     {
-        foreach (var (action, _, _, _) in Definitions) Win32.UnregisterHotKey(_source.Handle, (int)action + 1);
-        _source.Dispose();
+        if (_hwnd == 0) return;
+        foreach (var (action, _, _, _) in Definitions) Win32.UnregisterHotKey(_hwnd, (int)action + 1);
+        Win32.DestroyWindow(_hwnd);
+        Win32.UnregisterClass(ClassName, _instance);
+        _hwnd = 0;
     }
 }

@@ -147,6 +147,81 @@ public class SavedGroupTests
     }
 
     [Fact]
+    public void Json_EstadoDosPaineis_IdaEVolta()
+    {
+        var terminal = Id("t") with { WorkingDirectory = @"C:\proj" };
+        var group = new SavedGroup
+        {
+            Id = Guid.NewGuid(),
+            ActiveIndex = 1,
+            MaximizedIndex = 0,
+            Layout = new NodeDto { Horizontal = true, Weights = new() { 1, 1 }, Children = new() { new NodeDto { App = terminal, Mode = EmbedMode.Dock }, Leaf("b") } },
+        };
+        var json = JsonSerializer.Serialize(new List<SavedGroup> { group }, StoreOptions);
+        var loaded = Assert.Single(JsonSerializer.Deserialize<List<SavedGroup>>(json, StoreOptions)!);
+        Assert.Equal(1, loaded.ActiveIndex);
+        Assert.Equal(0, loaded.MaximizedIndex);
+        Assert.Equal(EmbedMode.Dock, loaded.Layout!.Children[0].Mode);
+        Assert.Equal(EmbedMode.Auto, loaded.Layout.Children[1].Mode);
+        Assert.Equal(terminal, loaded.Layout.Children[0].App); // inclui a pasta
+        Assert.Equal(@"C:\proj", loaded.Layout.Children[0].App!.WorkingDirectory);
+    }
+
+    [Fact]
+    public void Json_CamposNovosVazios_NaoPoluemOArquivo()
+    {
+        var json = JsonSerializer.Serialize(new NodeDto { App = Id("a") }, StoreOptions);
+        Assert.DoesNotContain("WorkingDirectory", json);
+        Assert.DoesNotContain("\"Mode\"", json);
+    }
+
+    [Fact]
+    public void Json_ArquivoDaVersaoAnterior_SemEstado_Padroes()
+    {
+        var loaded = Assert.Single(JsonSerializer.Deserialize<List<SavedGroup>>("""[{"Id":"0f8fad5b-d9cb-469f-a165-70867728950e","Layout":{"App":{"ExePath":"a","Arguments":null,"Title":"t","LastHandle":1,"LastProcessId":2}}}]""", StoreOptions)!);
+        Assert.Equal(-1, loaded.ActiveIndex);
+        Assert.Equal(-1, loaded.MaximizedIndex);
+        Assert.Equal(EmbedMode.Auto, loaded.Layout!.Mode);
+        Assert.Null(loaded.Layout.App!.WorkingDirectory);
+    }
+
+    [Theory]
+    [InlineData(-5, -1)]
+    [InlineData(4, -1)] // só há 4 apps (0..3)
+    [InlineData(3, 3)]
+    [InlineData(-1, -1)]
+    public void Sanitize_IndicesForaDoLayout_Descartados(int index, int expected)
+    {
+        var group = new SavedGroup { Id = Guid.NewGuid(), Layout = Nested(), ActiveIndex = index, MaximizedIndex = index };
+        Assert.True(GroupStore.Sanitize(group));
+        Assert.Equal(expected, group.ActiveIndex);
+        Assert.Equal(expected, group.MaximizedIndex);
+    }
+
+    [Fact]
+    public void Sanitize_IndiceDeAppDescartadoPeloLimite_ViraMenosUm()
+    {
+        var many = new NodeDto { Horizontal = true };
+        for (var i = 0; i < 20; i++) { many.Children.Add(Leaf(((char)('a' + i)).ToString())); many.Weights.Add(1); }
+        var group = new SavedGroup { Id = Guid.NewGuid(), Layout = many, ActiveIndex = 18, MaximizedIndex = 15 };
+        Assert.True(GroupStore.Sanitize(group));
+        Assert.Equal(16, group.AppCount);
+        Assert.Equal(-1, group.ActiveIndex);
+        Assert.Equal(15, group.MaximizedIndex);
+    }
+
+    [Fact]
+    public void ToDto_UsaOEstadoAtualDeCadaApp()
+    {
+        var hosts = new[] { "a", "b" }.Select(n => new Fakes.FakeWindow(n)).ToList();
+        var tree = new LayoutTree();
+        foreach (var h in hosts) tree.Add(h, null, true);
+        var dto = tree.ToDto(h => h.Identity with { Title = "agora " + ((Fakes.FakeWindow)h).Name });
+        Assert.Equal(new[] { "agora a", "agora b" }, dto!.Children.Select(c => c.App!.Title));
+        Assert.All(dto.Children, c => Assert.Equal(EmbedMode.Reparent, c.Mode));
+    }
+
+    [Fact]
     public void Json_TreeParaDtoParaJsonParaTree_PreservaEstrutura()
     {
         var hosts = new[] { "a", "b", "c", "d" }.Select(n => new Fakes.FakeWindow(n)).ToList();

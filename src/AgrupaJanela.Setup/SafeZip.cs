@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 
@@ -36,6 +37,21 @@ internal static class SafeZip
         return count;
     }
 
+    private static readonly HashSet<string> ReservedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    };
+
+    /// <summary>"CON", "nul.txt", "COM1 .log": o nome antes do primeiro ponto (sem espaços no fim) é de dispositivo.</summary>
+    internal static bool IsReservedName(string segment)
+    {
+        var dot = segment.IndexOf('.');
+        var stem = (dot < 0 ? segment : segment.Substring(0, dot)).TrimEnd(' ');
+        return ReservedNames.Contains(stem);
+    }
+
     /// <summary>Caminho final de uma entrada (termina em "\" se for pasta), null se vazia; lança se sair da pasta.</summary>
     public static string? ResolveEntryPath(string root, string entryName)
     {
@@ -44,6 +60,11 @@ internal static class SafeZip
         if (name.Length == 0) return null;
         if (name.StartsWith("\\", StringComparison.Ordinal) || name.IndexOf(':') >= 0 || Path.IsPathRooted(name))
             throw new InvalidDataException($"Entrada inválida no pacote (caminho absoluto): {entryName}");
+        // Nomes de dispositivo (CON, NUL, COM1...) em qualquer parte do caminho, com ou sem extensão. Não dependemos
+        // do GetFullPath: no Windows 10 ele vira \\.\CON (e cai fora da pasta), no Windows 11 vira um arquivo comum.
+        foreach (var segment in name.Split(new[] { '\\' }, StringSplitOptions.RemoveEmptyEntries))
+            if (IsReservedName(segment))
+                throw new InvalidDataException($"Entrada inválida no pacote (nome reservado do Windows): {entryName}");
         var isDir = name.EndsWith("\\", StringComparison.Ordinal);
         string full;
         try { full = Path.GetFullPath(Path.Combine(root, name)); }

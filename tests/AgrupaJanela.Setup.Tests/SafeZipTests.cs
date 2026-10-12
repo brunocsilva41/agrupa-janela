@@ -34,6 +34,20 @@ public class SafeZipTests
     }
 
     [Theory]
+    [InlineData("CON", true)]
+    [InlineData("nul.txt", true)]
+    [InlineData("COM1 .log", true)]
+    [InlineData("lpt9", true)]
+    [InlineData("console.txt", false)]
+    [InlineData("CONx", false)]
+    [InlineData("COM10", false)]
+    [InlineData("SplitDeck.exe", false)]
+    public void IsReservedName_SoNomesDeDispositivo(string segment, bool reserved)
+    {
+        Assert.Equal(reserved, SafeZip.IsReservedName(segment));
+    }
+
+    [Theory]
     [InlineData("arquivo.txt", @"C:\SplitDeck-Teste\destino\arquivo.txt")]
     [InlineData("pasta/arquivo.txt", @"C:\SplitDeck-Teste\destino\pasta\arquivo.txt")]
     [InlineData(@"pasta\sub\x.dll", @"C:\SplitDeck-Teste\destino\pasta\sub\x.dll")]

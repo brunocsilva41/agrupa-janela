@@ -1,3 +1,4 @@
+using AgrupaJanela.Hosting;
 using AgrupaJanela.Persistence;
 using System.Diagnostics;
 using System.IO;
@@ -32,6 +33,13 @@ public static class UpdateService
     /// <summary>Instalado pelo instalador (tem o Setup.exe ao lado) — só assim a atualização automática se aplica.</summary>
     public static bool IsInstalled => File.Exists(SetupPath);
     private static string SetupPath => Path.Combine(AppContext.BaseDirectory, "Setup.exe");
+
+    /// <summary>
+    /// A UI usa isto para decidir entre "Atualizar" (baixa e executa o instalador verificado) e só oferecer
+    /// abrir a página do release (<see cref="UpdateInfo.PageUrl"/>). Com o SplitDeck elevado (administrador)
+    /// ou fora de uma instalação, nunca se atualiza sozinho: o instalador não é baixado nem executado.
+    /// </summary>
+    public static bool CanSelfUpdate => IsInstalled && !WindowCatalog.SelfElevated;
 
     /// <summary>Consulta o último release. Retorna null se não houver versão mais nova (ou sem internet).</summary>
     public static async Task<UpdateInfo?> CheckAsync(CancellationToken cancel = default)
@@ -70,6 +78,7 @@ public static class UpdateService
     /// <summary>Baixa o instalador, confere o SHA-256 e retorna o caminho verificado.</summary>
     public static async Task<string> DownloadVerifiedAsync(UpdateInfo update, IProgress<double>? progress = null, CancellationToken cancel = default)
     {
+        if (WindowCatalog.SelfElevated) throw new InvalidOperationException(ElevatedMessage);
         var dir = Path.Combine(Path.GetTempPath(), "SplitDeck-update", update.Version.ToString());
         Directory.CreateDirectory(dir);
         var file = Path.Combine(dir, Path.GetFileName(new Uri(update.SetupUrl).LocalPath));
@@ -110,8 +119,13 @@ public static class UpdateService
     }
 
     /// <summary>Inicia o instalador verificado: ele espera este processo sair, instala e reabre o app.</summary>
-    public static void LaunchInstaller(string verifiedSetup) =>
+    public static void LaunchInstaller(string verifiedSetup)
+    {
+        if (WindowCatalog.SelfElevated) throw new InvalidOperationException(ElevatedMessage);
         Process.Start(new ProcessStartInfo(verifiedSetup, $"--update --silent --wait-pid {Environment.ProcessId} --relaunch") { UseShellExecute = false });
+    }
+
+    private const string ElevatedMessage = "O SplitDeck está rodando como administrador: a atualização não é instalada sozinha. Baixe a nova versão pela página do release.";
 
     public static void OpenUrl(string url)
     {

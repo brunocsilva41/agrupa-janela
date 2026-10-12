@@ -31,6 +31,9 @@ public partial class GroupWindow : Window
     private readonly DispatcherTimer _watch = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _statusClear = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly DropOverlay _overlay = new();
+    private readonly List<(Preset Preset, string Tip)> _layoutChoices = new();
+    /// <summary>Tamanho mínimo de um painel da grade (DIP), para não ficar espremido demais.</summary>
+    private const double PaneMinSize = 120;
 
     private LayoutMode _mode = LayoutMode.Grid;
     private IGroupedWindow? _active;
@@ -73,9 +76,10 @@ public partial class GroupWindow : Window
         _statusClear.Tick += (_, _) => HideStatus();
         _watch.Start();
         BuildPresetButtons();
+        ApplyBarWidth();
         // Janelas acopladas acompanham o grupo: mover, redimensionar, minimizar e ordem Z.
         LocationChanged += (_, _) => SyncDocked(force: true);
-        SizeChanged += (_, _) => SyncDocked(force: true);
+        SizeChanged += (_, _) => { ApplyBarWidth(); SyncDocked(force: true); };
         StateChanged += (_, _) => SyncDocked(force: true);
         Activated += (_, _) => { foreach (var d in Docked) d.RaiseAboveGroup(); };
         AppController.Instance.DockWatcher.Destroyed += OnDockedDestroyed;
@@ -610,7 +614,7 @@ public partial class GroupWindow : Window
                 Place(splitter, split.Horizontal, Count(grid, split.Horizontal) - 1);
                 grid.Children.Add(splitter);
             }
-            AddDefinition(grid, split.Horizontal, new GridLength(Math.Max(0.05, split.Weights[i]), GridUnitType.Star));
+            AddDefinition(grid, split.Horizontal, new GridLength(Math.Max(0.05, split.Weights[i]), GridUnitType.Star), PaneMinSize);
             var child = BuildNode(split.Children[i]);
             Place(child, split.Horizontal, Count(grid, split.Horizontal) - 1);
             grid.Children.Add(child);
@@ -618,10 +622,10 @@ public partial class GroupWindow : Window
         _splitGrids[split] = grid;
         return grid;
 
-        static void AddDefinition(Grid g, bool horizontal, GridLength length)
+        static void AddDefinition(Grid g, bool horizontal, GridLength length, double min = 0)
         {
-            if (horizontal) g.ColumnDefinitions.Add(new ColumnDefinition { Width = length });
-            else g.RowDefinitions.Add(new RowDefinition { Height = length });
+            if (horizontal) g.ColumnDefinitions.Add(new ColumnDefinition { Width = length, MinWidth = min });
+            else g.RowDefinitions.Add(new RowDefinition { Height = length, MinHeight = min });
         }
         static int Count(Grid g, bool horizontal) => horizontal ? g.ColumnDefinitions.Count : g.RowDefinitions.Count;
         static void Place(UIElement e, bool horizontal, int index)
@@ -870,13 +874,44 @@ public partial class GroupWindow : Window
             }
             var button = new Button { Content = canvas, ToolTip = tip, Style = (Style)FindResource("GhostButton"), Padding = new Thickness(6, 4, 6, 4) };
             AutomationProperties.SetName(button, tip);
-            button.Click += (_, _) =>
-            {
-                if (_mode == LayoutMode.Tabs) GridModeButton.IsChecked = true;
-                Mutate(() => { _tree.ApplyPreset(preset); _maximized = null; });
-            };
+            button.Click += (_, _) => ApplyLayout(preset);
             PresetPanel.Children.Add(button);
+            _layoutChoices.Add((preset, tip));
         }
+    }
+
+    private void ApplyLayout(Preset preset)
+    {
+        if (_mode == LayoutMode.Tabs) GridModeButton.IsChecked = true;
+        Mutate(() => { _tree.ApplyPreset(preset); _maximized = null; });
+    }
+
+    private void LayoutMenu_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu { PlacementTarget = LayoutMenuButton, Placement = PlacementMode.Bottom };
+        foreach (var (preset, tip) in _layoutChoices)
+        {
+            var item = new MenuItem { Header = tip };
+            item.Click += (_, _) => ApplyLayout(preset);
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Barra do grupo conforme a largura: abaixo de 900 DIP os rótulos somem (ficam os ícones, com ToolTip);
+    /// abaixo de 680 DIP os 5 layouts viram o menu "Layout ▾".
+    /// </summary>
+    private void ApplyBarWidth()
+    {
+        var width = ActualWidth > 0 ? ActualWidth : Width;
+        var labels = width >= 900 ? Visibility.Visible : Visibility.Collapsed;
+        NewGroupLabel.Visibility = labels;
+        EqualizeLabel.Visibility = labels;
+        LayoutLabel.Visibility = labels;
+        var layoutsFit = width >= 680;
+        PresetPanel.Visibility = layoutsFit ? Visibility.Visible : Visibility.Collapsed;
+        LayoutMenuButton.Visibility = layoutsFit ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void Mode_Checked(object sender, RoutedEventArgs e)

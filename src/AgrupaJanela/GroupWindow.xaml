@@ -20,7 +20,7 @@
                   ToolTip="Abrir outro grupo vazio para juntar outras janelas" AutomationProperties.Name="Novo grupo">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource IconText}" Text="&#xE78B;"/>
-              <TextBlock Text="Novo grupo" Margin="6,0,0,0"/>
+              <TextBlock x:Name="NewGroupLabel" Text="Novo grupo" Margin="6,0,0,0"/>
             </StackPanel>
           </Button>
           <Button x:Name="AddButton" Style="{StaticResource PrimaryButton}" Margin="6,0,0,0" Padding="10,3" Click="Add_Click"
@@ -54,12 +54,16 @@
           </Border>
 
           <Rectangle Width="1" Fill="{StaticResource Line}" Margin="10,3"/>
-          <TextBlock Text="Layout" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+          <TextBlock x:Name="LayoutLabel" Text="Layout" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" Margin="0,0,4,0"/>
           <StackPanel x:Name="PresetPanel" Orientation="Horizontal"/>
-          <Button Style="{StaticResource GhostButton}" Click="Equalize_Click" ToolTip="Deixa todos os painéis do mesmo tamanho">
+          <!-- Janela estreita (abaixo de 680 DIP): os 5 layouts viram este menu -->
+          <Button x:Name="LayoutMenuButton" Style="{StaticResource GhostButton}" Content="Layout ▾" Visibility="Collapsed"
+                  Click="LayoutMenu_Click" ToolTip="Escolher o layout dos painéis"/>
+          <Button Style="{StaticResource GhostButton}" Click="Equalize_Click" ToolTip="Igualar: deixa todos os painéis do mesmo tamanho"
+                  AutomationProperties.Name="Igualar">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource IconText}" Text="&#xE9A6;"/>
-              <TextBlock Text="Igualar" Margin="6,0,0,0"/>
+              <TextBlock x:Name="EqualizeLabel" Text="Igualar" Margin="6,0,0,0"/>
             </StackPanel>
           </Button>
         </StackPanel>

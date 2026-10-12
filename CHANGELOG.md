@@ -6,6 +6,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+## [1.1.0] - 2026-10-12
+
 ### Corrigido
 
 - Grupos salvos não reabriam apps que se atualizam sozinhos: Windows Terminal e outros apps da Loja (a pasta muda a cada versão, e o atalho do Terminal é `wt.exe`) e apps Squirrel como o Discord (`app-<versão>`). O app passa a ser reconhecido pela família do pacote/pasta raiz e é aberto na versão atual.
@@ -79,6 +81,7 @@ Primeira versão pública, feita sobre o **.NET 10 (LTS)**.
 - Instância única e sinais por usuário e sessão (`Local\SplitDeck.{SID}`); callbacks de eventos do Windows nunca deixam exceções escaparem.
 - IDs do menu de sistema compatíveis com a máscara de `WM_SYSCOMMAND`; itens de outros apps nunca são alterados.
 
-[Não lançado]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.1...HEAD
+[Não lançado]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/brunocsilva41/agrupa-janela/releases/tag/v1.0.0

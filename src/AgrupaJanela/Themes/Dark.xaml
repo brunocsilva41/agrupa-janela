@@ -29,6 +29,17 @@
     <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
   </Style>
 
+  <!-- Foco de teclado (Tab): moldura de 2px na cor Accent. O mouse não ativa o foco visual do WPF. -->
+  <Style x:Key="FocusRing">
+    <Setter Property="Control.Template">
+      <Setter.Value>
+        <ControlTemplate>
+          <Rectangle Margin="-2" RadiusX="5" RadiusY="5" Stroke="{StaticResource Accent}" StrokeThickness="2" SnapsToDevicePixels="True"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- Botão padrão (plano) -->
   <Style TargetType="Button">
     <Setter Property="Foreground" Value="{StaticResource Text}"/>
@@ -36,7 +47,7 @@
     <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="Padding" Value="10,4"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -114,7 +125,7 @@
     <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
     <Setter Property="Background" Value="Transparent"/>
     <Setter Property="Padding" Value="10,3"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -165,7 +176,7 @@
     <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
   </Style>
   <Style TargetType="ListBoxItem">
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Padding" Value="8,5"/>
     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
     <Setter Property="Template">
@@ -245,7 +256,7 @@
   <!-- Divisórias entre painéis -->
   <Style TargetType="GridSplitter">
     <Setter Property="Background" Value="{StaticResource Bg}"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="GridSplitter">
@@ -285,7 +296,7 @@
   </Style>
   <Style TargetType="TabItem">
     <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="TabItem">
@@ -308,7 +319,7 @@
   <!-- Caixa de seleção -->
   <Style TargetType="CheckBox">
     <Setter Property="Foreground" Value="{StaticResource Text}"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template">
       <Setter.Value>

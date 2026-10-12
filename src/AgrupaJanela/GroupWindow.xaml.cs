@@ -900,6 +900,14 @@ public partial class GroupWindow : Window
     private void Save_Changed(object sender, RoutedEventArgs e)
     {
         if (!_ready || _syncingSave || (SaveToggle.IsChecked == true) == IsSaved) return;
+        if (IsSaved)
+        {
+            // Já salvo: desligar sem perguntar era fácil demais de fazer por engano. Só desliga se confirmar.
+            var forget = ChoiceDialog.Ask(this, "SplitDeck", "Deixar de lembrar este grupo?",
+                new ChoiceOption("Deixar de lembrar", "O grupo continua aberto, mas não será reaberto sozinho.", Primary: true),
+                new ChoiceOption("Cancelar")) == 0;
+            if (!forget) { SetSaved(true); return; } // devolve o botão ao estado "salvo" (sem disparar o evento)
+        }
         SetSaved(SaveToggle.IsChecked == true);
         SaveToggled?.Invoke(this);
         Status(IsSaved ? "Grupo salvo: layout e apps serão lembrados." : "Grupo não será mais lembrado.");

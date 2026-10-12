@@ -22,11 +22,10 @@ public static class AppLauncher
     {
         if (Reclaim(app, taken) is { } same) return same;
 
-        // Rodando como administrador, nada é relançado a partir do arquivo (senão um arquivo editável
-        // pelo usuário comum viraria uma forma de rodar programas elevados sem o aviso do UAC).
-        if (WindowCatalog.SelfElevated || !CanLaunch(app)) return null;
+        if (!CanLaunch(app)) return null;
         var before = WindowCatalog.EnumerateFast().Select(c => c.Handle).ToHashSet();
-        if (!Start(app, out var pid)) return null;
+        _lastStartOk = Start(app, out var pid);
+        if (!_lastStartOk) return null;
 
         var deadline = DateTime.UtcNow.AddSeconds(15);
         while (DateTime.UtcNow < deadline && !cancel.IsCancellationRequested)
@@ -48,9 +47,13 @@ public static class AppLauncher
 
     /// <summary>Por que um app salvo não pôde ser aberto (texto para o painel do app que falhou).</summary>
     public static string WhyNot(AppIdentity app) =>
-        WindowCatalog.SelfElevated ? "O SplitDeck está rodando como administrador e, por segurança, não reabre apps salvos."
-        : !CanLaunch(app) ? $"Não foi possível encontrar o programa ({Path.GetFileName(app.ExePath) ?? "desconhecido"}). Ele foi desinstalado ou movido?"
+        !CanLaunch(app) ? $"Não foi possível encontrar o programa ({Path.GetFileName(app.ExePath) ?? "desconhecido"}). Ele foi desinstalado ou movido?"
+        : WindowCatalog.SelfElevated && !_lastStartOk
+            ? "O SplitDeck está rodando como administrador e não conseguiu abrir o app como usuário comum (a área de trabalho do Windows não está disponível). Por segurança, ele não abre apps salvos como administrador."
         : "O app não mostrou a janela a tempo.";
+
+    /// <summary>Resultado da última tentativa de abrir (para a mensagem do painel que falhou).</summary>
+    private static bool _lastStartOk = true;
 
     /// <summary>A mesma janela de antes, se ainda existe e ninguém a usa. Mostra de volta se estiver minimizada ou escondida.</summary>
     private static WindowCandidate? Reclaim(AppIdentity app, ISet<nint> taken)
@@ -97,8 +100,16 @@ public static class AppLauncher
             && TerminalDirectory.WindowsTerminalArguments(app.Arguments, directory) is { } withDirectory)
             arguments = withDirectory;
 
+        var workingDirectory = directory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         foreach (var target in Targets(app.ExePath!))
         {
+            // Rodando como administrador: o app abre como usuário comum (identidade do Explorer). Nunca elevado —
+            // o groups.json é editável por qualquer programa do usuário e não pode virar um atalho para o UAC.
+            if (WindowCatalog.SelfElevated)
+            {
+                if (UnelevatedLauncher.Start(target, arguments, workingDirectory, out pid)) return true;
+                continue;
+            }
             try
             {
                 // Atalhos de apps empacotados (%LOCALAPPDATA%\Microsoft\WindowsApps) precisam do shell; o resto abre direto.
@@ -106,7 +117,7 @@ public static class AppLauncher
                 using var process = Process.Start(new ProcessStartInfo(target, arguments)
                 {
                     UseShellExecute = alias,
-                    WorkingDirectory = directory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    WorkingDirectory = workingDirectory,
                 });
                 pid = process?.Id ?? 0;
                 return true;

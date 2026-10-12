@@ -209,14 +209,28 @@ public sealed class AppController : IDisposable
         TrimMemory();
     }
 
-    /// <summary>Na bandeja o app só espera eventos: devolve ao Windows a memória que não está em uso.</summary>
-    private static void TrimMemory() =>
-        Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, () =>
+    /// <summary>
+    /// Na bandeja o app só espera eventos: devolve ao Windows a memória que não está em uso.
+    /// Adiado: logo depois de iniciar o app ainda está carregando, então um único timer (reiniciado a cada pedido) faz a limpeza.
+    /// </summary>
+    private void TrimMemory()
+    {
+        if (_trimTimer is null)
         {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            Win32.TrimWorkingSet();
-        });
+            _trimTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            _trimTimer.Tick += (_, _) =>
+            {
+                _trimTimer.Stop();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                Win32.TrimWorkingSet();
+            };
+        }
+        _trimTimer.Stop();
+        _trimTimer.Start();
+    }
+
+    private System.Windows.Threading.DispatcherTimer? _trimTimer;
 
     public GroupWindow CreateGroup()
     {

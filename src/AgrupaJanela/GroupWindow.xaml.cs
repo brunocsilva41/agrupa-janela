@@ -336,7 +336,8 @@ public partial class GroupWindow : Window
         Rebuild();
         if (_active is not null) SetActive(_active, focus: true);
         if (opened == placeholders.Count) Status(Texto.Plural(opened, "app restaurado.", "apps restaurados."));
-        else StatusError($"Restaurados {opened} de {placeholders.Count}. Os demais ficaram no lugar com \"Tentar de novo\".");
+        else StatusError($"{opened} de {Texto.Plural(placeholders.Count, "app reaberto", "apps reabertos")}. "
+            + (placeholders.Count - opened == 1 ? "O outro ficou" : "Os outros ficaram") + " no lugar com \"Tentar de novo\".");
         RaiseChanged(); // grava as janelas novas (HWND, processo) para a próxima reabertura reencontrá-las
     }
 

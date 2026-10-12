@@ -60,6 +60,27 @@ internal static class Win32
     [DllImport("user32.dll", SetLastError = true)] public static extern bool RegisterHotKey(nint hwnd, int id, uint modifiers, uint vk);
     [DllImport("user32.dll")] public static extern bool UnregisterHotKey(nint hwnd, int id);
 
+    // ---- Janela só de mensagens em Win32 puro (atalhos), sem HwndSource do WPF ----
+    public delegate nint WindowProc(nint hwnd, uint msg, nint wParam, nint lParam);
+    public static readonly nint HWND_MESSAGE = -3;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct WNDCLASSEX
+    {
+        public uint cbSize, style;
+        public WindowProc lpfnWndProc;
+        public int cbClsExtra, cbWndExtra;
+        public nint hInstance, hIcon, hCursor, hbrBackground;
+        public string? lpszMenuName;
+        public string lpszClassName;
+        public nint hIconSm;
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] public static extern ushort RegisterClassEx(ref WNDCLASSEX wc);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] public static extern bool UnregisterClass(string className, nint instance);
+    [DllImport("user32.dll")] public static extern nint DefWindowProc(nint hwnd, uint msg, nint wParam, nint lParam);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] public static extern nint GetModuleHandle(string? name);
+
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(nint hwnd, int attribute, out int value, int size);
 
     [DllImport("kernel32.dll")] public static extern nint OpenProcess(uint access, bool inherit, uint pid);

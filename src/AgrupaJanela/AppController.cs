@@ -294,7 +294,13 @@ public sealed class AppController : IDisposable
         group.NewGroupRequested += g => NewEmptyGroup(g);
         group.Changed += g =>
         {
-            if (g.IsSaved) Store.Save(g.ToSaved());
+            // Grupo salvo: grava 1 s depois da última mudança (cada tecla no nome não grava na hora).
+            // Fechando, grava já: as pastas dos terminais só se leem enquanto os apps ainda estão no grupo.
+            if (g.IsSaved)
+            {
+                if (g.IsClosing) { TakePending(g); SaveNow(g); }
+                else QueueSave(g);
+            }
             GroupsChanged?.Invoke();
         };
         group.SaveToggled += g =>
@@ -310,6 +316,43 @@ public sealed class AppController : IDisposable
             GroupsChanged?.Invoke();
         };
         GroupsChanged?.Invoke();
+    }
+
+    // ---------- Gravação agrupada ----------
+
+    /// <summary>Um timer por grupo com gravação pendente; cada mudança reinicia o atraso de 1 s.</summary>
+    private readonly Dictionary<GroupWindow, System.Windows.Threading.DispatcherTimer> _pendingSaves = new();
+
+    private void QueueSave(GroupWindow group)
+    {
+        if (!_pendingSaves.TryGetValue(group, out var timer))
+        {
+            timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            timer.Tick += (_, _) => { if (TakePending(group)) SaveNow(group); };
+            _pendingSaves[group] = timer;
+        }
+        timer.Stop();
+        timer.Start();
+    }
+
+    /// <summary>Tira a gravação pendente do grupo (cancela o timer). Retorna true se havia uma esperando.</summary>
+    private bool TakePending(GroupWindow group)
+    {
+        if (!_pendingSaves.Remove(group, out var timer)) return false;
+        timer.Stop();
+        return true;
+    }
+
+    private void SaveNow(GroupWindow group)
+    {
+        if (group.IsSaved) Store.Save(group.ToSaved());
+    }
+
+    /// <summary>Grava já as mudanças que ainda esperam o atraso. Fechar cada grupo já grava; isto é a rede de segurança do encerramento.</summary>
+    public void FlushPending()
+    {
+        foreach (var group in _pendingSaves.Keys.ToList())
+            if (TakePending(group)) SaveNow(group);
     }
 
     // ---------- Atalhos globais ----------

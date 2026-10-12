@@ -16,7 +16,8 @@ public static class TerminalDirectory
     public static bool IsTerminal(nint hwnd) => Win32.GetClass(hwnd) is ConsoleClass or TerminalClass;
 
     /// <summary>A pasta atual do terminal desta janela, ou null (não é terminal, não deu para ler, pasta não existe).</summary>
-    public static string? Of(nint hwnd)
+    /// <param name="processes">Foto de todos os processos, compartilhada entre várias janelas (tirada só quando precisar).</param>
+    public static string? Of(nint hwnd, Lazy<List<(uint Pid, uint Parent, string Name)>>? processes = null)
     {
         if (hwnd == 0 || !Win32.IsWindow(hwnd)) return null;
         var shells = new List<uint>();
@@ -42,7 +43,7 @@ public static class TerminalDirectory
         }
         if (shells.Count == 0) return null;
 
-        var parents = Win32.ProcessParents();
+        var parents = (processes ?? new Lazy<List<(uint Pid, uint Parent, string Name)>>(Win32.ProcessParents)).Value;
         foreach (var shell in shells.Where(p => p != 0))
         {
             // O comando que está rodando no shell (ex.: claude, npm) foi aberto na pasta atual; o PowerShell não

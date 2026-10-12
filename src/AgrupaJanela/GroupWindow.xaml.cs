@@ -50,6 +50,8 @@ public partial class GroupWindow : Window
     public Guid Id { get; }
     public string GroupName => string.IsNullOrWhiteSpace(NameBox.Text) ? "Grupo" : NameBox.Text.Trim();
     public bool IsSaved { get; private set; }
+    /// <summary>Fechamento começou: os apps ainda estão no grupo, então é a última hora de ler o estado deles.</summary>
+    public bool IsClosing => _closeStarted;
     public int Count => _tree.Leaves().Count();
     /// <summary>Há janelas reais no grupo (painéis de apps que não abriram não contam).</summary>
     public bool HasWindows => Hosts.Any(h => h is not PlaceholderHost);
@@ -257,9 +259,11 @@ public partial class GroupWindow : Window
     {
         var bounds = WindowState == WindowState.Normal || RestoreBounds.IsEmpty ? new Rect(Left, Top, Width, Height) : RestoreBounds;
         var hosts = Hosts;
+        // Uma foto de processos para todos os terminais do grupo (tirada só se algum terminal existir).
+        var processes = new Lazy<List<(uint Pid, uint Parent, string Name)>>(Win32.ProcessParents);
         return new SavedGroup
         {
-            Id = Id, Name = GroupName, Tabs = _mode == LayoutMode.Tabs, Layout = _tree.ToDto(StateOf),
+            Id = Id, Name = GroupName, Tabs = _mode == LayoutMode.Tabs, Layout = _tree.ToDto(host => StateOf(host, processes)),
             Left = bounds.Left, Top = bounds.Top, Width = bounds.Width, Height = bounds.Height,
             Maximized = WindowState == WindowState.Maximized,
             ActiveIndex = _active is null ? -1 : hosts.IndexOf(_active),
@@ -271,10 +275,12 @@ public partial class GroupWindow : Window
     private readonly Dictionary<IGroupedWindow, string> _lastDirectory = new();
 
     /// <summary>O que salvar de um app agora: identidade atual, título atual e, nos terminais, a pasta atual.</summary>
-    private AppIdentity StateOf(IGroupedWindow host)
+    private AppIdentity StateOf(IGroupedWindow host) => StateOf(host, null);
+
+    private AppIdentity StateOf(IGroupedWindow host, Lazy<List<(uint Pid, uint Parent, string Name)>>? processes)
     {
         if (host is PlaceholderHost) return host.Identity;
-        if (host.IsAttached && TerminalDirectory.Of(host.Target) is { } dir) _lastDirectory[host] = dir;
+        if (host.IsAttached && TerminalDirectory.Of(host.Target, processes) is { } dir) _lastDirectory[host] = dir;
         return host.Identity with
         {
             Title = host.CurrentTitle,

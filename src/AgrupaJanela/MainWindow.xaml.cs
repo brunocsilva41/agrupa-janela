@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Automation;
@@ -100,7 +101,7 @@ public partial class MainWindow : Window
     {
         WindowsList.ItemsSource ??= _windows;
         var fresh = WindowCatalog.Enumerate();
-        HintText.Text = $"{fresh.Count(c => c.CanEmbed)} janela(s) disponível(is). Ctrl+clique seleciona várias; duplo clique agrupa na hora.";
+        HintText.Text = $"{Texto.Plural(fresh.Count(c => c.CanEmbed), "janela disponível", "janelas disponíveis")}. Ctrl+clique seleciona várias; duplo clique agrupa na hora.";
 
         for (var i = 0; i < fresh.Count; i++)
         {
@@ -125,7 +126,7 @@ public partial class MainWindow : Window
     private void RefreshGroups()
     {
         OpenGroupsList.ItemsSource = _app.Groups
-            .Select(g => new OpenGroupItem(g, g.GroupName, $"{g.Count} janela(s){(g.IsSaved ? " · salvo" : "")}"))
+            .Select(g => new OpenGroupItem(g, g.GroupName, $"{Texto.Plural(g.Count, "janela", "janelas")}{(g.IsSaved ? " · salvo" : "")}"))
             .ToList();
         SavedList.Items.Refresh();
         OpenGroupsHint.Visibility = _app.Groups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -196,8 +197,8 @@ public partial class MainWindow : Window
     private void DeleteSaved_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not SavedGroup saved) return;
-        var answer = ChoiceDialog.Ask(this, "SplitDeck", $"Esquecer o grupo salvo \"{saved.Name}\"?",
-            ("Esquecer", "Os apps abertos não são afetados.", true), ("Cancelar", "", false));
+        var answer = ChoiceDialog.Ask(this, "SplitDeck", $"Remover o grupo salvo \"{saved.Name}\"?",
+            new ChoiceOption("Remover dos salvos", "Os apps abertos não são afetados.", Danger: true), new ChoiceOption("Cancelar"));
         if (answer == 0) _app.DeleteSaved(saved);
     }
 
@@ -216,4 +217,14 @@ public partial class MainWindow : Window
     }
 
     private sealed record OpenGroupItem(GroupWindow Window, string Name, string Summary);
+}
+
+/// <summary>Resumo de um grupo salvo (nº de apps + data), montado na tela para a palavra "app" sair no plural certo.</summary>
+public sealed class SavedSummaryConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+        $"{Texto.Plural((int)values[0], "app", "apps")} · salvo em {(DateTime)values[1]:dd/MM HH:mm}";
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture) =>
+        throw new NotSupportedException();
 }

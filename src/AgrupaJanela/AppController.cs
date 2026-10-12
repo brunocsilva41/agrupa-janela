@@ -63,7 +63,7 @@ public sealed class AppController : IDisposable
         }
         // Encerramento forçado anterior pode ter deixado janelas acopladas escondidas: mostra de volta.
         var recovered = DockRecovery.RecoverOrphans();
-        if (recovered > 0) _tray.ShowMessage("Janelas recuperadas", $"{recovered} janela(s) que estavam agrupadas foram devolvidas à área de trabalho.");
+        if (recovered > 0) _tray.ShowMessage("Janelas recuperadas", Texto.Plural(recovered, "janela que estava agrupada foi devolvida à área de trabalho.", "janelas que estavam agrupadas foram devolvidas à área de trabalho."));
         if (!startInTray) ShowMain();
         else TrimMemory();
         if (Settings.ReopenSavedOnStart)
@@ -449,7 +449,7 @@ public sealed class AppController : IDisposable
         var closeApps = false;
         if (open.Count > 0)
         {
-            var answer = ChoiceDialog.AskCloseGroups(_main, open.Count == 1 ? $"\"{open[0].GroupName}\" e sair" : $"os {open.Count} grupos e sair");
+            var answer = ChoiceDialog.AskCloseGroups(_main, open.Count == 1 ? $"Fechar o grupo \"{open[0].GroupName}\" e sair?" : $"Fechar os {open.Count} grupos e sair?");
             if (answer is null) return;
             closeApps = answer.Value;
         }

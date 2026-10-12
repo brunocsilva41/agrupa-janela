@@ -331,8 +331,8 @@ public partial class GroupWindow : Window
         _loading = false;
         Rebuild();
         if (_active is not null) SetActive(_active, focus: true);
-        if (opened == placeholders.Count) Status($"{opened} app(s) restaurado(s).");
-        else StatusError($"{opened} de {placeholders.Count} app(s) restaurado(s); os demais ficaram no lugar com \"Tentar de novo\".");
+        if (opened == placeholders.Count) Status(Texto.Plural(opened, "app restaurado.", "apps restaurados."));
+        else StatusError($"Restaurados {opened} de {placeholders.Count}. Os demais ficaram no lugar com \"Tentar de novo\".");
         RaiseChanged(); // grava as janelas novas (HWND, processo) para a próxima reabertura reencontrá-las
     }
 
@@ -401,7 +401,7 @@ public partial class GroupWindow : Window
         _closeStarted = true;
         if (!_closeDecided && HasWindows)
         {
-            var closeApps = ChoiceDialog.AskCloseGroups(this, $"\"{GroupName}\"");
+            var closeApps = ChoiceDialog.AskCloseGroups(this, $"Fechar o grupo \"{GroupName}\"?");
             // O diálogo é modal e bombeia mensagens: o Quit/Sair pode ter decidido enquanto ele estava aberto.
             if (!_closeDecided)
             {
@@ -471,7 +471,7 @@ public partial class GroupWindow : Window
         var resolved = mode == EmbedMode.Auto
             ? EmbedPolicy.Resolve(host.Target, host.ProcessId, host.Identity.ExePath, app.Settings)
             : mode;
-        if (resolved == host.Mode) { Status($"Modo {EmbedPolicy.Label(resolved).ToLowerInvariant()} (já estava)."); return; }
+        if (resolved == host.Mode) { Status($"Modo \"{ModeTitle(resolved)}\" (já estava)."); return; }
 
         var hwnd = host.Target;
         host.Release();
@@ -489,7 +489,7 @@ public partial class GroupWindow : Window
         if (replacement is not null)
         {
             SetActive(replacement, focus: true);
-            Status($"\"{replacement.CurrentTitle}\" agora está {EmbedPolicy.Label(resolved).ToLowerInvariant()}. Lembrado para {System.IO.Path.GetFileName(host.Identity.ExePath)}.");
+            Status($"\"{replacement.CurrentTitle}\" agora está em \"{ModeTitle(resolved)}\". Lembrado para {System.IO.Path.GetFileName(host.Identity.ExePath)}.");
         }
     }
 
@@ -703,6 +703,14 @@ public partial class GroupWindow : Window
         return view;
     }
 
+    /// <summary>Nome do modo para o usuário. (O motivo técnico em EmbedPolicy continua com os nomes antigos.)</summary>
+    private static string ModeTitle(EmbedMode mode) => mode switch
+    {
+        EmbedMode.Reparent => "Dentro do painel",
+        EmbedMode.Dock => "Sobre o painel",
+        _ => "Automático (recomendado)",
+    };
+
     private void ShowModeMenu(IGroupedWindow host, Button anchor)
     {
         var app = AppController.Instance;
@@ -713,14 +721,15 @@ public partial class GroupWindow : Window
         {
             var header = new StackPanel();
             header.Children.Add(new TextBlock { Text = (choice == mode ? "● " : "○ ") + title, FontWeight = FontWeights.SemiBold });
-            header.Children.Add(new TextBlock { Text = hint, FontSize = 11, Opacity = 0.7, TextWrapping = TextWrapping.Wrap, MaxWidth = 320 });
+            header.Children.Add(new TextBlock { Text = hint, FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextDim"], TextWrapping = TextWrapping.Wrap, MaxWidth = 320 });
             var item = new MenuItem { Header = header };
             item.Click += (_, _) => SwitchMode(host, mode);
             menu.Items.Add(item);
         }
-        Add(EmbedMode.Auto, "Automático", EmbedPolicy.Explain(host.Target, host.ProcessId, host.Identity.ExePath, app.Settings));
-        Add(EmbedMode.Reparent, "Incorporada", "A janela vira parte do painel. Ideal para terminais e apps clássicos.");
-        Add(EmbedMode.Dock, "Acoplada", "A janela continua real, posicionada sobre o painel. Ideal para navegadores, VS Code, Discord e apps com GPU.");
+        menu.Items.Add(new MenuItem { Header = "Como mostrar este app", IsEnabled = false, FontWeight = FontWeights.SemiBold });
+        Add(EmbedMode.Auto, ModeTitle(EmbedMode.Auto), EmbedPolicy.Explain(host.Target, host.ProcessId, host.Identity.ExePath, app.Settings));
+        Add(EmbedMode.Reparent, ModeTitle(EmbedMode.Reparent), "Mais integrado. Use para terminais e apps comuns.");
+        Add(EmbedMode.Dock, ModeTitle(EmbedMode.Dock), "A janela fica por cima do painel. Use se o app ficar preto, piscando ou lento.");
         menu.Items.Add(new MenuItem { Header = $"A escolha fica salva para {exe}.", IsEnabled = false });
         menu.IsOpen = true;
     }
@@ -953,11 +962,9 @@ public partial class GroupWindow : Window
             ModeButton = new Button
             {
                 Content = GlyphIcon(host.Mode == EmbedMode.Dock ? '\uE8A7' : '\uE8A1'), Style = ghost, Padding = new Thickness(6, 0, 6, 0), Focusable = false,
-                ToolTip = host.Mode == EmbedMode.Dock
-                    ? "Acoplada: janela real posicionada sobre o painel (ideal para navegadores e apps com GPU). Clique para trocar."
-                    : "Incorporada: janela dentro do painel (ideal para terminais e apps clássicos). Clique para trocar.",
+                ToolTip = "Como mostrar este app: " + ModeTitle(host.Mode) + ". Clique para trocar.",
             };
-            AutomationProperties.SetName(ModeButton, "Modo do painel");
+            AutomationProperties.SetName(ModeButton, "Como mostrar este app");
             _buttons = new StackPanel { Orientation = Orientation.Horizontal, Visibility = Visibility.Hidden };
             if (host is not PlaceholderHost) _buttons.Children.Add(ModeButton);
             _buttons.Children.Add(MaximizeButton);

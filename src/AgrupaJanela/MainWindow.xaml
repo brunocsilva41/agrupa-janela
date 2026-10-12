@@ -3,7 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="SplitDeck" Width="640" Height="820" MinWidth="460" MinHeight="520"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource Bg}" Foreground="{StaticResource Text}" FontSize="12.5">
+        Background="{StaticResource Bg}" Foreground="{StaticResource Text}" FontSize="12.5"
+        xmlns:local="clr-namespace:AgrupaJanela">
+  <Window.Resources>
+    <local:SavedSummaryConverter x:Key="SavedSummary"/>
+  </Window.Resources>
   <Grid Margin="16,14,16,12">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
@@ -92,14 +96,21 @@
               <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                   <Button Content="Abrir" Click="OpenSaved_Click" Padding="8,2"/>
-                  <Button Style="{StaticResource GhostButton}" Click="DeleteSaved_Click" ToolTip="Esquecer este grupo"
-                          AutomationProperties.Name="Esquecer este grupo" Margin="2,0,0,0">
+                  <Button Style="{StaticResource GhostButton}" Click="DeleteSaved_Click" ToolTip="Remover dos salvos"
+                          AutomationProperties.Name="Remover dos salvos" Margin="2,0,0,0">
                     <TextBlock Style="{StaticResource IconText}" FontSize="10" Text="&#xE8BB;"/>
                   </Button>
                 </StackPanel>
                 <StackPanel>
                   <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                  <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextDim}" FontSize="11"/>
+                  <TextBlock Foreground="{StaticResource TextDim}" FontSize="11">
+                    <TextBlock.Text>
+                      <MultiBinding Converter="{StaticResource SavedSummary}">
+                        <Binding Path="AppCount"/>
+                        <Binding Path="SavedAt"/>
+                      </MultiBinding>
+                    </TextBlock.Text>
+                  </TextBlock>
                 </StackPanel>
               </DockPanel>
             </DataTemplate>

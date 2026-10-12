@@ -24,6 +24,25 @@ public class AtomicFileTests : IDisposable
     }
 
     [Fact]
+    public void CopyAsBackup_nunca_sobrescreve_um_bak_existente()
+    {
+        var path = Path.Combine(_dir, "groups.json");
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(path, "primeiro");
+        var first = AtomicFile.CopyAsBackup(path);
+        File.WriteAllText(path, "segundo");
+
+        var second = AtomicFile.CopyAsBackup(path);
+
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.NotEqual(first, second);
+        Assert.Equal("primeiro", File.ReadAllText(first!));
+        Assert.Equal("segundo", File.ReadAllText(second!));
+        Assert.StartsWith(path + ".bak-", first);
+    }
+
+    [Fact]
     public void Substitui_o_conteudo_anterior()
     {
         var path = Path.Combine(_dir, "dados.json");

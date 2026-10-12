@@ -68,16 +68,31 @@ public sealed class AppSettings
         catch { return null; }
     }
 
+    /// <summary>settings.json ilegível que não pôde ser copiado: não grava por cima dele até conseguir.</summary>
+    private bool _unpreserved;
+
     public static AppSettings Load()
     {
-        try { return File.Exists(FilePath) ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new() : new(); }
-        catch { return new(); }
+        if (!File.Exists(FilePath)) return new();
+        try { return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new(); }
+        catch
+        {
+            // Ilegível: guarda uma cópia antes de qualquer gravação, para não perder as preferências do usuário.
+            var settings = new AppSettings();
+            settings._unpreserved = AtomicFile.CopyAsBackup(FilePath) is null;
+            return settings;
+        }
     }
 
     public void Save()
     {
         try
         {
+            if (_unpreserved)
+            {
+                if (File.Exists(FilePath) && AtomicFile.CopyAsBackup(FilePath) is null) return;
+                _unpreserved = false;
+            }
             // Atômico: uma queda na gravação não pode deixar o settings.json pela metade.
             AtomicFile.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
         }

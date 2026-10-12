@@ -33,26 +33,40 @@ public sealed class GroupStore
 {
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals };
     private const int MaxFileBytes = 2 * 1024 * 1024; // um groups.json legítimo tem poucos KB
-    private readonly string _path = AppPaths.GroupsFile;
+    private readonly string _path;
+
+    /// <summary>O arquivo lido não pôde ser copiado para um .bak: não grava por cima dele até conseguir.</summary>
+    private bool _unpreserved;
 
     /// <summary>Falha ao gravar (arquivo bloqueado por antivírus/backup etc.). Os grupos continuam funcionando.</summary>
     public event Action<string>? SaveFailed;
 
     public ObservableCollection<SavedGroup> Groups { get; } = new();
 
-    public GroupStore()
+    public GroupStore() : this(AppPaths.GroupsFile) { }
+
+    /// <summary>Pasta de teste: o construtor público sempre usa o groups.json real.</summary>
+    internal GroupStore(string path)
     {
+        _path = path;
         try
         {
-            if (!File.Exists(_path) || new FileInfo(_path).Length > MaxFileBytes) return;
+            if (!File.Exists(_path)) return;
+            // Grande demais para ser um groups.json legítimo: não é carregado, mas também não pode ser sobrescrito.
+            if (new FileInfo(_path).Length > MaxFileBytes) { Preserve(); return; }
             foreach (var group in JsonSerializer.Deserialize<List<SavedGroup>>(File.ReadAllText(_path), Options) ?? new())
                 if (Sanitize(group)) Groups.Add(group);
         }
         catch
         {
-            // Arquivo corrompido: preserva uma cópia e começa vazio.
-            try { File.Copy(_path, _path + ".bak", overwrite: true); } catch { }
+            // Ilegível: guarda uma cópia antes de qualquer gravação e começa vazio.
+            Preserve();
         }
+    }
+
+    private void Preserve()
+    {
+        if (File.Exists(_path)) _unpreserved = AtomicFile.CopyAsBackup(_path) is null;
     }
 
     public void Save(SavedGroup group)
@@ -72,6 +86,16 @@ public sealed class GroupStore
 
     private void Flush()
     {
+        // Só grava depois de ter guardado uma cópia do arquivo ilegível que estava no lugar.
+        if (_unpreserved)
+        {
+            if (File.Exists(_path) && AtomicFile.CopyAsBackup(_path) is null)
+            {
+                SaveFailed?.Invoke("O groups.json existente não pôde ser copiado; os grupos não foram gravados para não substituí-lo.");
+                return;
+            }
+            _unpreserved = false;
+        }
         try { AtomicFile.WriteAllText(_path, JsonSerializer.Serialize(Groups.ToList(), Options)); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { SaveFailed?.Invoke(ex.Message); }
     }

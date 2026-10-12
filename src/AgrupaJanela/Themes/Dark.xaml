@@ -12,15 +12,15 @@
   <SolidColorBrush x:Key="TextDim" Color="#9A9EA6"/>
   <SolidColorBrush x:Key="Accent" Color="#4C8DFF"/>
   <SolidColorBrush x:Key="AccentSoft" Color="#1F3A66"/>
-  <!-- Fundo de botões primários (Accent continua para bordas e indicadores) -->
+  <!-- Fundo de botões primários (Accent continua para bordas e indicadores). Branco por cima: 4,7:1; hover mais escuro (5,3:1). -->
   <SolidColorBrush x:Key="AccentFill" Color="#2F6FE0"/>
-  <SolidColorBrush x:Key="AccentFillHover" Color="#3A7BEA"/>
+  <SolidColorBrush x:Key="AccentFillHover" Color="#2A66D6"/>
   <SolidColorBrush x:Key="AccentFillPressed" Color="#2458B8"/>
-  <!-- Texto secundário dentro de botões primários (sólido, sem Opacity) -->
-  <SolidColorBrush x:Key="TextOnAccent" Color="#E6EEFF"/>
+  <!-- Texto secundário dentro de botões primários: branco (nenhum tom claro passa de 4,5:1 sobre o azul) -->
+  <SolidColorBrush x:Key="TextOnAccent" Color="#FFFFFF"/>
   <!-- Contornos interativos: caixa de CheckBox, alça do GridSplitter, polegar da ScrollBar -->
-  <SolidColorBrush x:Key="LineStrong" Color="#5A5D64"/>
-  <SolidColorBrush x:Key="ThumbHover" Color="#7A7E86"/>
+  <SolidColorBrush x:Key="LineStrong" Color="#7C8089"/>
+  <SolidColorBrush x:Key="ThumbHover" Color="#969AA3"/>
   <SolidColorBrush x:Key="Warn" Color="#E0A458"/>
   <SolidColorBrush x:Key="Danger" Color="#F47067"/>
   <SolidColorBrush x:Key="DangerHover" Color="#F8857E"/>

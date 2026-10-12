@@ -17,6 +17,12 @@ public class TerminalDirectoryTests
         Assert.Equal(expected, TerminalDirectory.WindowsTerminalArguments(saved, @"C:\proj"));
 
     [Theory]
+    [InlineData(@"C:\a;b")]
+    [InlineData(@"C:\x"" ; new-tab cmd")]
+    public void WindowsTerminal_PastaComPontoEVirgula_NaoVaiParaALinhaDeComando(string directory) =>
+        Assert.Null(TerminalDirectory.WindowsTerminalArguments(@"-d ""C:\velho""", directory));
+
+    [Theory]
     [InlineData(@"C:\proj", @"""C:\proj""")]
     [InlineData(@"C:\", @"""C:\\""")] // sem dobrar, \" escaparia a aspa final
     [InlineData(@"C:\com espaço", @"""C:\com espaço""")]

@@ -84,9 +84,13 @@ public static class TerminalDirectory
     private static readonly Regex StartDirectoryOption = new(
         @"(^|\s)(-d|--startingDirectory)\s+(""[^""]*""|\S+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50));
 
-    /// <summary>Argumentos do Windows Terminal abrindo na pasta: troca o -d/--startingDirectory salvo pelo novo.</summary>
-    internal static string WindowsTerminalArguments(string? arguments, string directory)
+    /// <summary>
+    /// Argumentos do Windows Terminal abrindo na pasta: troca o -d/--startingDirectory salvo pelo novo.
+    /// Null se a pasta tiver ";": para o wt, ";" separa comandos mesmo entre aspas, e o resto do nome viraria outro comando.
+    /// </summary>
+    internal static string? WindowsTerminalArguments(string? arguments, string directory)
     {
+        if (directory.Contains(';')) return null;
         string rest;
         try { rest = StartDirectoryOption.Replace(arguments ?? "", " ").Trim(); }
         catch (RegexMatchTimeoutException) { rest = ""; }

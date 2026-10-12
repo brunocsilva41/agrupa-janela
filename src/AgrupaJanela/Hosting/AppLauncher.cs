@@ -107,8 +107,9 @@ public static class AppLauncher
         var directory = TerminalDirectory.Clean(app.WorkingDirectory);
         var arguments = app.Arguments ?? "";
         // Windows Terminal ignora a pasta do processo: a pasta vai como argumento (-d).
-        if (directory is not null && string.Equals(Path.GetFileName(app.ExePath), "WindowsTerminal.exe", StringComparison.OrdinalIgnoreCase))
-            arguments = TerminalDirectory.WindowsTerminalArguments(app.Arguments, directory);
+        if (directory is not null && string.Equals(Path.GetFileName(app.ExePath), "WindowsTerminal.exe", StringComparison.OrdinalIgnoreCase)
+            && TerminalDirectory.WindowsTerminalArguments(app.Arguments, directory) is { } withDirectory)
+            arguments = withDirectory;
 
         foreach (var target in Targets(app.ExePath!))
         {

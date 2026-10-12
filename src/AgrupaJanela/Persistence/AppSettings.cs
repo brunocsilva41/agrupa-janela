@@ -78,8 +78,8 @@ public sealed class AppSettings
     {
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            // Atômico: uma queda na gravação não pode deixar o settings.json pela metade.
+            AtomicFile.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch { /* preferências não podem derrubar o app */ }
     }

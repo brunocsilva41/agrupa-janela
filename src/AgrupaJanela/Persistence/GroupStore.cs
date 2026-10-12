@@ -72,23 +72,8 @@ public sealed class GroupStore
 
     private void Flush()
     {
-        // Gravação atômica com uma nova tentativa: um bloqueio passageiro nunca pode desmontar os grupos.
-        for (var attempt = 0; attempt < 3; attempt++)
-        {
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-                var temp = _path + ".tmp";
-                File.WriteAllText(temp, JsonSerializer.Serialize(Groups.ToList(), Options));
-                File.Move(temp, _path, overwrite: true);
-                return;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                if (attempt == 2) { SaveFailed?.Invoke(ex.Message); return; }
-                Thread.Sleep(80);
-            }
-        }
+        try { AtomicFile.WriteAllText(_path, JsonSerializer.Serialize(Groups.ToList(), Options)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { SaveFailed?.Invoke(ex.Message); }
     }
 
     /// <summary>Descarta/corrige valores impossíveis de um arquivo corrompido ou adulterado.</summary>

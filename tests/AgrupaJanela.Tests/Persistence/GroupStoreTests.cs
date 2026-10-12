@@ -86,6 +86,69 @@ public class GroupStoreTests : IDisposable
         Assert.Empty(Backups());
     }
 
+    private static string Group(string name) => "{\"Id\":\"11111111-2222-3333-4444-555555555555\",\"Name\":\"" + name + "\"}";
+
+    [Fact]
+    public void Le_formato_v1_array_e_grava_envelope_v2()
+    {
+        File.WriteAllText(GroupsPath, "[" + Group("Antigo") + "]");
+
+        var store = new GroupStore(GroupsPath);
+
+        Assert.Equal("Antigo", Assert.Single(store.Groups).Name);
+        Assert.Empty(Backups());
+
+        store.Save(new SavedGroup { Id = Guid.NewGuid(), Name = "Novo" });
+
+        var text = File.ReadAllText(GroupsPath);
+        Assert.Contains("\"SchemaVersion\": 2", text);
+        Assert.Equal(2, new GroupStore(GroupsPath).Groups.Count);
+    }
+
+    [Fact]
+    public void Le_formato_v2_envelope()
+    {
+        File.WriteAllText(GroupsPath, "{\"SchemaVersion\": 2, \"Groups\": [" + Group("Atual") + "]}");
+
+        var store = new GroupStore(GroupsPath);
+
+        Assert.Equal("Atual", Assert.Single(store.Groups).Name);
+        Assert.Empty(Backups());
+    }
+
+    [Fact]
+    public void Versao_futura_carrega_em_memoria_mas_nao_sobrescreve()
+    {
+        const string future = "{\"SchemaVersion\": 3, \"Groups\": [" + "{\"Id\":\"11111111-2222-3333-4444-555555555555\",\"Name\":\"Futuro\"}" + "]}";
+        File.WriteAllText(GroupsPath, future);
+        var store = new GroupStore(GroupsPath);
+        var failures = new List<string>();
+        store.SaveFailed += failures.Add;
+
+        store.Save(new SavedGroup { Id = Guid.NewGuid(), Name = "Local" });
+
+        Assert.Equal(2, store.Groups.Count);                 // trabalha em memória
+        var message = Assert.Single(failures);
+        Assert.Contains("versão mais nova", message);
+        Assert.Equal(future, File.ReadAllText(GroupsPath));  // o arquivo do outro SplitDeck ficou intacto
+    }
+
+    [Fact]
+    public void Versao_futura_ilegivel_nao_e_sobrescrita_e_fica_copiada()
+    {
+        const string future = "{\"SchemaVersion\": 3, \"Groups\": 5}";
+        File.WriteAllText(GroupsPath, future);
+        var store = new GroupStore(GroupsPath);
+        var failures = new List<string>();
+        store.SaveFailed += failures.Add;
+
+        store.Save(new SavedGroup { Id = Guid.NewGuid(), Name = "Local" });
+
+        Assert.Single(failures);
+        Assert.Equal(future, File.ReadAllText(GroupsPath));
+        Assert.Equal(future, File.ReadAllText(Backups().Single()));
+    }
+
     [Fact]
     public void Arquivo_inexistente_cria_grupos_vazios_sem_bak()
     {

@@ -33,10 +33,21 @@ public sealed class GroupStore
 {
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals };
     private const int MaxFileBytes = 2 * 1024 * 1024; // um groups.json legítimo tem poucos KB
+    /// <summary>Versão do formato gravado: {"SchemaVersion": 2, "Groups": [...]}. A v1 era só o array de grupos.</summary>
+    internal const int CurrentSchemaVersion = 2;
     private readonly string _path;
 
     /// <summary>O arquivo lido não pôde ser copiado para um .bak: não grava por cima dele até conseguir.</summary>
     private bool _unpreserved;
+
+    /// <summary>Versão maior que a suportada (criada por um SplitDeck mais novo): trabalha em memória e não grava.</summary>
+    private int _futureVersion;
+
+    internal sealed class FileDto
+    {
+        public int SchemaVersion { get; set; }
+        public List<SavedGroup>? Groups { get; set; }
+    }
 
     /// <summary>Falha ao gravar (arquivo bloqueado por antivírus/backup etc.). Os grupos continuam funcionando.</summary>
     public event Action<string>? SaveFailed;
@@ -49,19 +60,52 @@ public sealed class GroupStore
     internal GroupStore(string path)
     {
         _path = path;
+        string? text = null;
         try
         {
             if (!File.Exists(_path)) return;
             // Grande demais para ser um groups.json legítimo: não é carregado, mas também não pode ser sobrescrito.
             if (new FileInfo(_path).Length > MaxFileBytes) { Preserve(); return; }
-            foreach (var group in JsonSerializer.Deserialize<List<SavedGroup>>(File.ReadAllText(_path), Options) ?? new())
+            text = File.ReadAllText(_path);
+            var loaded = Parse(text, out var version);
+            foreach (var group in loaded)
                 if (Sanitize(group)) Groups.Add(group);
+            if (version > CurrentSchemaVersion) _futureVersion = version;
         }
         catch
         {
             // Ilegível: guarda uma cópia antes de qualquer gravação e começa vazio.
+            if (text is not null) _futureVersion = FutureVersionOf(text);
             Preserve();
         }
+    }
+
+    /// <summary>Lê o formato atual (envelope) e o antigo (array). Lança se o conteúdo não for reconhecível.</summary>
+    internal static List<SavedGroup> Parse(string text, out int version)
+    {
+        if (text.TrimStart().StartsWith('['))
+        {
+            version = 1;
+            return JsonSerializer.Deserialize<List<SavedGroup>>(text, Options) ?? new();
+        }
+        var file = JsonSerializer.Deserialize<FileDto>(text, Options) ?? throw new JsonException("groups.json vazio");
+        if (file.SchemaVersion < 1 || file.Groups is null) throw new JsonException("groups.json sem SchemaVersion/Groups válidos");
+        version = file.SchemaVersion;
+        return file.Groups;
+    }
+
+    /// <summary>Versão do envelope, se for maior que a suportada (mesmo que o resto esteja ilegível); senão 0.</summary>
+    private static int FutureVersionOf(string text)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(text);
+            if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+                && doc.RootElement.TryGetProperty(nameof(FileDto.SchemaVersion), out var v)
+                && v.TryGetInt32(out var version) && version > CurrentSchemaVersion) return version;
+        }
+        catch (System.Text.Json.JsonException) { }
+        return 0;
     }
 
     private void Preserve()
@@ -86,6 +130,12 @@ public sealed class GroupStore
 
     private void Flush()
     {
+        // Arquivo de uma versão mais nova: gravar apagaria dados que este app não entende.
+        if (_futureVersion > 0)
+        {
+            SaveFailed?.Invoke($"O groups.json foi salvo por uma versão mais nova do SplitDeck (formato {_futureVersion}). Os grupos não foram gravados para não substituí-lo.");
+            return;
+        }
         // Só grava depois de ter guardado uma cópia do arquivo ilegível que estava no lugar.
         if (_unpreserved)
         {
@@ -96,7 +146,8 @@ public sealed class GroupStore
             }
             _unpreserved = false;
         }
-        try { AtomicFile.WriteAllText(_path, JsonSerializer.Serialize(Groups.ToList(), Options)); }
+        var file = new FileDto { SchemaVersion = CurrentSchemaVersion, Groups = Groups.ToList() };
+        try { AtomicFile.WriteAllText(_path, JsonSerializer.Serialize(file, Options)); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { SaveFailed?.Invoke(ex.Message); }
     }
 

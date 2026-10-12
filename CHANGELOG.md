@@ -6,6 +6,12 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+## [1.1.1] - 2026-10-12
+
+### Corrigido
+
+- Com o SplitDeck rodando como administrador (ex.: "Executar como administrador" marcado nas propriedades, para agrupar jogos/apps elevados), os grupos salvos não reabriam nenhum app ("por segurança, não reabre apps salvos"). Agora os apps são reabertos como **usuário comum**, com a identidade da área de trabalho do Windows, exatamente como se fossem abertos pelo Menu Iniciar. Só o SplitDeck fica elevado; um app que exija administrador mostra o próprio aviso do UAC. Se não houver como abrir como usuário comum, o app não é aberto elevado — o painel explica o motivo.
+
 ## [1.1.0] - 2026-10-12
 
 ### Corrigido
@@ -81,7 +87,8 @@ Primeira versão pública, feita sobre o **.NET 10 (LTS)**.
 - Instância única e sinais por usuário e sessão (`Local\SplitDeck.{SID}`); callbacks de eventos do Windows nunca deixam exceções escaparem.
 - IDs do menu de sistema compatíveis com a máscara de `WM_SYSCOMMAND`; itens de outros apps nunca são alterados.
 
-[Não lançado]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.1.0...HEAD
+[Não lançado]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/brunocsilva41/agrupa-janela/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/brunocsilva41/agrupa-janela/releases/tag/v1.0.0

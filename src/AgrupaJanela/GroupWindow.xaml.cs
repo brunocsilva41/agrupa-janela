@@ -36,7 +36,7 @@ public partial class GroupWindow : Window
     private IGroupedWindow? _active;
     private IGroupedWindow? _maximized;
     private bool _syncingSave;
-    private bool _ready, _loading, _closing, _closed, _closeDecided, _closeApps;
+    private bool _ready, _loading, _closing, _closed, _closeDecided, _closeApps, _closeStarted;
 
     // Arraste de painel pelo cabeçalho
     private IGroupedWindow? _dragSource;
@@ -192,6 +192,9 @@ public partial class GroupWindow : Window
     {
         _closeDecided = true;
         _closeApps = closeApps;
+        // Já fechando (o diálogo de OnClosing pode estar aberto e o Quit chegou): Close() de novo lança
+        // InvalidOperationException. A decisão acima basta: OnClosing a respeita ao voltar do diálogo.
+        if (_closeStarted || _closed) return;
         Close();
     }
 
@@ -395,11 +398,16 @@ public partial class GroupWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
+        _closeStarted = true;
         if (!_closeDecided && HasWindows)
         {
             var closeApps = ChoiceDialog.AskCloseGroups(this, $"\"{GroupName}\"");
-            if (closeApps is null) { e.Cancel = true; return; }
-            _closeApps = closeApps.Value;
+            // O diálogo é modal e bombeia mensagens: o Quit/Sair pode ter decidido enquanto ele estava aberto.
+            if (!_closeDecided)
+            {
+                if (closeApps is null) { _closeStarted = false; e.Cancel = true; return; }
+                _closeApps = closeApps.Value;
+            }
         }
 
         if (IsSaved) Changed?.Invoke(this); // guarda posição, tamanho, painel ativo e pastas dos terminais

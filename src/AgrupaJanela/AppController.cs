@@ -453,10 +453,17 @@ public sealed class AppController : IDisposable
             if (answer is null) return;
             closeApps = answer.Value;
         }
+        // Um Quit/Sair que chegou com o diálogo aberto já encerrou o app.
+        if (_exiting) return;
         _exiting = true;
-        foreach (var group in Groups.ToList()) group.CloseWithDecision(closeApps);
-        _main?.Close();
-        Dispose();
+        try
+        {
+            // Um grupo com erro não pode impedir os demais, o Dispose nem o encerramento.
+            foreach (var group in Groups.ToList())
+                try { group.CloseWithDecision(closeApps); } catch { }
+            try { _main?.Close(); } catch { }
+        }
+        finally { Dispose(); }
         Application.Current.Shutdown();
     }
 
@@ -465,8 +472,12 @@ public sealed class AppController : IDisposable
     {
         if (_exiting) return;
         _exiting = true;
-        foreach (var group in Groups.ToList()) group.CloseWithDecision(false);
-        Dispose();
+        try
+        {
+            foreach (var group in Groups.ToList())
+                try { group.CloseWithDecision(false); } catch { }
+        }
+        finally { Dispose(); }
     }
 
     public void Dispose()

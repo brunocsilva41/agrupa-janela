@@ -167,7 +167,8 @@ internal sealed class Installer
     {
         try
         {
-            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            if (Directory.Exists(dir) && TreeDelete.DeleteTree(dir) > 0)
+                Log.Warn($"Nem tudo em {dir} pôde ser apagado (em uso?).");
         }
         catch (Exception ex)
         {
@@ -228,7 +229,8 @@ internal sealed class Uninstaller
         if (removeData)
         {
             Report(3, "Apagando grupos salvos e preferências…", 90);
-            if (Directory.Exists(_ctx.DataDir)) Directory.Delete(_ctx.DataDir, true);
+            if (Directory.Exists(_ctx.DataDir) && TreeDelete.DeleteTree(_ctx.DataDir) > 0)
+                throw new SetupException("Alguns dados não puderam ser apagados (em uso?).");
             Log.Info($"Dados apagados: {_ctx.DataDir}");
         }
         else
@@ -246,31 +248,16 @@ internal sealed class Uninstaller
         var self = PathRules.ToLongPath(SetupContext.SelfPath);
         if (!PathRules.IsSameOrInside(self, dir))
         {
-            Directory.Delete(dir, true);
+            if (TreeDelete.DeleteTree(dir) > 0)
+                throw new SetupException("Alguns arquivos não puderam ser apagados (em uso?). A entrada em Programas e Recursos foi mantida para tentar de novo.");
             Log.Info($"Pasta apagada: {dir}");
             return;
         }
 
         // Rodando de dentro da pasta: apaga tudo menos o próprio Setup.exe; a pasta sai depois (SelfDelete).
-        var failures = 0;
-        foreach (var file in Directory.GetFiles(dir, "*", SearchOption.AllDirectories))
-        {
-            if (RunEntry.SamePath(file, self)) continue;
-            try
-            {
-                File.SetAttributes(file, FileAttributes.Normal);
-                File.Delete(file);
-            }
-            catch (Exception ex)
-            {
-                failures++;
-                Log.Error($"Não foi possível apagar {file}", ex);
-            }
-        }
+        var failures = TreeDelete.DeleteTree(dir, p => RunEntry.SamePath(p, self));
         if (failures > 0)
             throw new SetupException($"{failures} arquivo(s) não puderam ser apagados (em uso?). A entrada em Programas e Recursos foi mantida para tentar de novo.");
-        foreach (var sub in Directory.GetDirectories(dir, "*", SearchOption.AllDirectories).OrderByDescending(d => d.Length))
-            Directory.Delete(sub, false);
         SelfDelete.PendingDir = dir;
         Log.Info($"Arquivos apagados; a pasta {dir} (com o Setup.exe) será removida quando o desinstalador fechar.");
     }
@@ -295,6 +282,55 @@ internal sealed class Uninstaller
     private void Slow()
     {
         if (_ctx.TestSlow) Thread.Sleep(700);
+    }
+}
+
+/// <summary>
+/// Remoção recursiva que não atravessa reparse points (junctions e links simbólicos): a entrada do link é
+/// apagada, o destino não. Enumeração manual, porque GetFiles/Delete recursivos podem seguir o link para fora da pasta.
+/// </summary>
+internal static class TreeDelete
+{
+    /// <summary>Apaga <paramref name="root"/> e o conteúdo. Retorna quantas entradas não puderam ser apagadas (0 = tudo ok).</summary>
+    public static int DeleteTree(string root, Func<string, bool>? keep = null)
+    {
+        var failures = 0;
+        DeleteEntry(root, keep, ref failures);
+        return failures;
+    }
+
+    /// <summary>Retorna true se a entrada saiu do disco.</summary>
+    private static bool DeleteEntry(string path, Func<string, bool>? keep, ref int failures)
+    {
+        if (keep != null && keep(path)) return false;
+        try
+        {
+            var attributes = File.GetAttributes(path);
+            if (!attributes.HasFlag(FileAttributes.Directory))
+            {
+                File.SetAttributes(path, FileAttributes.Normal);
+                File.Delete(path); // se for um link de arquivo, apaga o link
+                return true;
+            }
+
+            if (!attributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                var empty = true;
+                foreach (var child in Directory.EnumerateFileSystemEntries(path).ToList())
+                    empty &= DeleteEntry(child, keep, ref failures); // sem "&&": todos os filhos são tentados
+                if (!empty) return false;
+            }
+
+            // Pasta comum já vazia, ou reparse point (junction/link de pasta): só a entrada sai, sem entrar nela.
+            Directory.Delete(path, false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            failures++;
+            Log.Error($"Não foi possível apagar {path}", ex);
+            return false;
+        }
     }
 }
 

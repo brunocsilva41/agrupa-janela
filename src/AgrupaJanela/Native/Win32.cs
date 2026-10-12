@@ -94,11 +94,20 @@ internal static class Win32
 
     public static bool IsShiftDown() => (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
 
+    public const int DWMWA_CAPTION_COLOR = 35, DWMWA_TEXT_COLOR = 36;
+
     public static void UseDarkTitleBar(nint hwnd)
     {
         var on = 1;
         if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref on, sizeof(int)) != 0)
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_OLD, ref on, sizeof(int));
+
+        // Windows 11: cor da barra (#232427 = Surface) e do texto (#E8E9EB = Text). COLORREF é 0x00BBGGRR.
+        // No Windows 10 essas chaves não existem e o DWM devolve erro: ignora, a barra fica no modo escuro.
+        var caption = 0x00272423;
+        var text = 0x00EBE9E8;
+        DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref caption, sizeof(int));
+        DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ref text, sizeof(int));
     }
 
     // ---- Eventos de mover/redimensionar janelas de outros processos ----

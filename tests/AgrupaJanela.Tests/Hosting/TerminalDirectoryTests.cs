@@ -53,11 +53,18 @@ public class TerminalDirectoryTests
         })!;
         try
         {
-            Thread.Sleep(300);
-            Assert.Equal(dir.TrimEnd('\\') + "\\", Win32.GetProcessCurrentDirectory((uint)process.Id), ignoreCase: true);
-
-            // O filho mais recente do cmd (o ping) aparece na árvore de processos com o cmd como pai.
-            Assert.Contains(Win32.ProcessParents(), p => p.Parent == (uint)process.Id);
+            // Espera com prazo (não um tempo fixo): o processo e o filho dele (ping) podem demorar sob carga.
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            string? current = null;
+            var hasChild = false;
+            while (DateTime.UtcNow < deadline && (current is null || !hasChild))
+            {
+                current = Win32.GetProcessCurrentDirectory((uint)process.Id);
+                hasChild = Win32.ProcessParents().Any(p => p.Parent == (uint)process.Id && p.Name.Equals("PING.EXE", StringComparison.OrdinalIgnoreCase));
+                if (current is null || !hasChild) Thread.Sleep(50);
+            }
+            Assert.Equal(dir.TrimEnd('\\') + "\\", current, ignoreCase: true);
+            Assert.True(hasChild, "o ping (filho do cmd) deveria aparecer na árvore de processos com o cmd como pai");
         }
         finally
         {

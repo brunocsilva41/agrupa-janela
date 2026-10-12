@@ -102,8 +102,9 @@ public sealed class GroupStore
         if (!double.IsFinite(group.Top) || Math.Abs(group.Top) > 50000) group.Top = double.NaN;
         var apps = 0;
         group.Layout = SanitizeNode(group.Layout, 0, ref apps);
-        if (group.ActiveIndex < -1 || group.ActiveIndex >= apps) group.ActiveIndex = -1;
-        if (group.MaximizedIndex < -1 || group.MaximizedIndex >= apps) group.MaximizedIndex = -1;
+        var kept = Math.Min(apps, MaxAppsPerGroup); // apps além do limite foram descartados acima
+        if (group.ActiveIndex < -1 || group.ActiveIndex >= kept) group.ActiveIndex = -1;
+        if (group.MaximizedIndex < -1 || group.MaximizedIndex >= kept) group.MaximizedIndex = -1;
         return true;
     }
 

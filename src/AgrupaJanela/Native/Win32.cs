@@ -45,6 +45,7 @@ internal static class Win32
     [DllImport("user32.dll", SetLastError = true)] public static extern nint SetParent(nint child, nint parent);
     [DllImport("user32.dll", SetLastError = true)] public static extern bool SetWindowPos(nint hwnd, nint insertAfter, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] public static extern bool ShowWindow(nint hwnd, int cmd);
+    [DllImport("user32.dll")] public static extern bool ShowWindowAsync(nint hwnd, int cmd);
     [DllImport("user32.dll")] public static extern bool GetWindowPlacement(nint hwnd, ref WINDOWPLACEMENT placement);
     [DllImport("user32.dll")] public static extern bool SetWindowPlacement(nint hwnd, ref WINDOWPLACEMENT placement);
     [DllImport("user32.dll")] public static extern bool PostMessage(nint hwnd, int msg, nint wParam, nint lParam);

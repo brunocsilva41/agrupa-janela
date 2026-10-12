@@ -199,6 +199,18 @@ public class SavedGroupTests
     }
 
     [Fact]
+    public void Sanitize_IndiceDeAppDescartadoPeloLimite_ViraMenosUm()
+    {
+        var many = new NodeDto { Horizontal = true };
+        for (var i = 0; i < 20; i++) { many.Children.Add(Leaf(((char)('a' + i)).ToString())); many.Weights.Add(1); }
+        var group = new SavedGroup { Id = Guid.NewGuid(), Layout = many, ActiveIndex = 18, MaximizedIndex = 15 };
+        Assert.True(GroupStore.Sanitize(group));
+        Assert.Equal(16, group.AppCount);
+        Assert.Equal(-1, group.ActiveIndex);
+        Assert.Equal(15, group.MaximizedIndex);
+    }
+
+    [Fact]
     public void ToDto_UsaOEstadoAtualDeCadaApp()
     {
         var hosts = new[] { "a", "b" }.Select(n => new Fakes.FakeWindow(n)).ToList();

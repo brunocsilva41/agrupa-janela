@@ -539,6 +539,9 @@ public sealed class AppController : IDisposable
 
     public void Dispose()
     {
+        // Antes de soltar as janelas: o que ainda esperava o atraso de 1 s é gravado (as pastas dos terminais
+        // só se leem com os apps ainda no grupo). Uma falha aqui nunca impede devolver as janelas.
+        try { FlushPending(); } catch { }
         HostRegistry.ReleaseAll();
         _systemMenu?.Dispose();
         _systemMenu = null;
